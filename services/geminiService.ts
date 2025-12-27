@@ -2,8 +2,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Flashcard, QuizQuestion, ConceptMapNode, StudyLocation, SearchResult } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let apiKey = process.env.API_KEY || localStorage.getItem('user_gemini_api_key') || '';
+// Initialize with available key, handled gracefully if empty until set
+let ai = new GoogleGenAI({ apiKey: apiKey || 'dummy' });
+
 const MODEL_NAME = 'gemini-3-flash-preview';
+
+export const setApiKey = (key: string) => {
+    apiKey = key;
+    localStorage.setItem('user_gemini_api_key', key);
+    ai = new GoogleGenAI({ apiKey });
+};
+
+export const getApiKey = () => apiKey;
 
 /**
  * Helper to construct the API payload with text, optional context, and optional images.
@@ -66,7 +77,7 @@ export const generateSummary = async (text: string, context?: string, images?: s
     return response.text || "Could not generate summary.";
   } catch (error) {
     console.error("Gemini API Error (Summary):", error);
-    return "Failed to generate summary. Please try again.";
+    return "Failed to generate summary. Please check your API key.";
   }
 };
 
