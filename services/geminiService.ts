@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Chat } from "@google/genai";
-import { Flashcard, QuizQuestion, ConceptMapNode, StudyLocation, SearchResult } from '../types';
+import { Flashcard, QuizQuestion, ConceptMapNode, StudyLocation, SearchResult, AudioLesson, AudioLessonSegment } from '../types';
 import { getMaterials, getStats, getTasks } from './storageService';
 
 let apiKey = process.env.API_KEY || localStorage.getItem('user_gemini_api_key') || '';
@@ -550,5 +550,103 @@ export const generateStructuredNotes = async (topic: string, context?: string, i
         return response.text || "Could not generate notes.";
     } catch (error) {
         return "Note generation failed.";
+    }
+};
+
+export const generateAudioLessonContent = async (topic: string, context?: string, images?: string[]): Promise<AudioLesson | null> => {
+    const prompt = `
+      Create a comprehensive "Audio Lesson" on the topic: "${topic}".
+      
+      This lesson will be spoken by an AI voice. Break the lesson down into segments of approximately 20-30 seconds of speaking time (about 40-60 words).
+      
+      For EACH segment:
+      1. Provide the exact spoken 'text'.
+      2. Provide a single multiple-choice 'quiz' question related to that specific segment to ensure the user was listening.
+      3. Provide a 'youtubeQuery' string to find a relevant YouTube short/video that visually explains the concept in that segment.
+      
+      At the end, provide a 'finalTest' with 5 questions covering the whole lesson.
+      
+      Return JSON:
+      {
+        "title": "Lesson Title",
+        "segments": [
+          { "text": "...", "quiz": { "question": "...", "options": ["A", "B"], "correctAnswer": 0, "explanation": "..." }, "youtubeQuery": "..." },
+          ...
+        ],
+        "finalTest": [ ... ]
+      }
+      
+      Generate at least 4 segments.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: MODEL_NAME,
+            contents: buildContents(prompt, topic, context, images),
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        segments: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    text: { type: Type.STRING },
+                                    quiz: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            question: { type: Type.STRING },
+                                            options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                            correctAnswer: { type: Type.INTEGER },
+                                            explanation: { type: Type.STRING }
+                                        }
+                                    },
+                                    youtubeQuery: { type: Type.STRING }
+                                }
+                            }
+                        },
+                        finalTest: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    question: { type: Type.STRING },
+                                    options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                    correctAnswer: { type: Type.INTEGER },
+                                    explanation: { type: Type.STRING }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const json = JSON.parse(response.text || "{}");
+        if (!json.segments) return null;
+
+        const lessonId = `audio-lesson-${Date.now()}`;
+        return {
+            id: lessonId,
+            title: json.title || "Audio Lesson",
+            segments: json.segments.map((seg: any, i: number) => ({
+                id: `${lessonId}-seg-${i}`,
+                text: seg.text,
+                quiz: { id: `${lessonId}-q-${i}`, ...seg.quiz },
+                youtubeQuery: seg.youtubeQuery
+            })),
+            finalTest: json.finalTest.map((q: any, i: number) => ({
+                 id: `${lessonId}-final-${i}`,
+                 ...q
+            })),
+            completed: false
+        };
+
+    } catch (error) {
+        console.error("Audio Lesson Gen Error", error);
+        return null;
     }
 };
