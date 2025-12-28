@@ -26,10 +26,80 @@ export const syncWidgetData = () => {
     }
 };
 
+// --- BADGING & SYNC HELPERS ---
+
+// Updates the app icon badge with the number of incomplete tasks
+const updateAppBadge = () => {
+    if ('setAppBadge' in navigator) {
+        const tasks = getTasks();
+        const incompleteCount = tasks.filter(t => !t.completed).length;
+        if (incompleteCount > 0) {
+            // @ts-ignore
+            navigator.setAppBadge(incompleteCount).catch(e => console.error(e));
+        } else {
+            // @ts-ignore
+            navigator.clearAppBadge().catch(e => console.error(e));
+        }
+    }
+};
+
+// Registers a background sync event
+export const registerBackgroundSync = async () => {
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            // @ts-ignore
+            await registration.sync.register('sync-study-data');
+        } catch (err) {
+            // Sync not supported or failed
+            console.debug('Background sync registration failed or not supported');
+        }
+    }
+};
+
+// --- PERIODIC SYNC (Feature #6) ---
+export const registerPeriodicSync = async () => {
+    if ('serviceWorker' in navigator && 'periodicSync' in (await navigator.serviceWorker.ready)) {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            // @ts-ignore
+            await registration.periodicSync.register('daily-streak-check', {
+                minInterval: 24 * 60 * 60 * 1000 // 1 day
+            });
+            console.log('Periodic sync registered');
+        } catch (error) {
+            console.log('Periodic sync could not be registered', error);
+        }
+    }
+};
+
+// --- CONTENT INDEXING API (Feature #7) ---
+export const addToContentIndex = async (material: StudyMaterial) => {
+    // @ts-ignore
+    if ('serviceWorker' in navigator && 'index' in (await navigator.serviceWorker.ready)) {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            // @ts-ignore
+            await registration.index.add({
+                id: material.id,
+                title: material.title,
+                description: `Study set for ${material.subject || 'general topics'}`,
+                category: 'article',
+                icons: [{ src: 'https://iili.io/fVhsBY7.png', sizes: '192x192', type: 'image/png' }],
+                url: `./#/study/${material.id}`
+            });
+            console.log('Content indexed:', material.title);
+        } catch (e) {
+            console.debug('Content indexing failed', e);
+        }
+    }
+};
+
 export const saveMaterial = (material: StudyMaterial) => {
   const materials = getMaterials();
   materials.push(material);
   localStorage.setItem(KEYS.MATERIALS, JSON.stringify(materials));
+  addToContentIndex(material); // Index content for Android system search
 };
 
 export const getMaterials = (): StudyMaterial[] => {
@@ -40,6 +110,14 @@ export const getMaterials = (): StudyMaterial[] => {
 export const deleteMaterial = (id: string) => {
   const materials = getMaterials().filter(m => m.id !== id);
   localStorage.setItem(KEYS.MATERIALS, JSON.stringify(materials));
+  
+  // Remove from index
+  if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+          // @ts-ignore
+          if(reg.index) reg.index.delete(id);
+      });
+  }
 };
 
 export const saveFlashcards = (materialId: string, cards: Flashcard[]) => {
@@ -134,11 +212,13 @@ const getAllKeyTerms = (): Record<string, string[]> => {
     return data ? JSON.parse(data) : {};
 }
 
-// Tasks Logic
+// Tasks Logic - Updated with Badge and Sync
 export const saveTask = (task: Task) => {
     const tasks = getTasks();
     tasks.push(task);
     localStorage.setItem(KEYS.TASKS, JSON.stringify(tasks));
+    updateAppBadge();
+    registerBackgroundSync();
 }
 
 export const getTasks = (): Task[] => {
@@ -150,11 +230,15 @@ export const updateTask = (task: Task) => {
     const tasks = getTasks();
     const updated = tasks.map(t => t.id === task.id ? task : t);
     localStorage.setItem(KEYS.TASKS, JSON.stringify(updated));
+    updateAppBadge();
+    registerBackgroundSync();
 }
 
 export const deleteTask = (id: string) => {
     const tasks = getTasks().filter(t => t.id !== id);
     localStorage.setItem(KEYS.TASKS, JSON.stringify(tasks));
+    updateAppBadge();
+    registerBackgroundSync();
 }
 
 
@@ -234,4 +318,6 @@ export const saveAppSettings = (settings: AppSettings) => {
 
 export const clearAllData = () => {
     localStorage.clear();
+    // @ts-ignore
+    if ('clearAppBadge' in navigator) navigator.clearAppBadge();
 }
