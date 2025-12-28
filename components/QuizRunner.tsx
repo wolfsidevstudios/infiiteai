@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { QuizQuestion, QuizResult } from '../types';
 import { CheckCircle, XCircle, Award, ArrowRight } from 'lucide-react';
@@ -51,16 +52,16 @@ const QuizRunner: React.FC<Props> = ({ questions, materialId, onComplete }) => {
     const percentage = Math.round((score / questions.length) * 100);
     return (
       <div className="h-full flex flex-col items-center justify-center text-center">
-        <div className="mb-6 p-6 rounded-full bg-yellow-50 text-yellow-600">
+        <div className="mb-6 p-6 rounded-full bg-yellow-900/30 text-yellow-500 border border-yellow-900/50">
           <Award size={48} />
         </div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Quiz Complete</h2>
-        <div className="text-6xl font-bold text-black mb-8">
+        <h2 className="text-3xl font-bold text-white mb-2">Quiz Complete</h2>
+        <div className="text-6xl font-bold text-white mb-8">
           {percentage}%
         </div>
         <button 
           onClick={onComplete}
-          className="px-8 py-3 bg-black text-white rounded-full font-medium hover:scale-105 transition-transform"
+          className="px-8 py-3 bg-white text-black rounded-full font-medium hover:scale-105 transition-transform"
         >
           Finish
         </button>
@@ -71,28 +72,28 @@ const QuizRunner: React.FC<Props> = ({ questions, materialId, onComplete }) => {
   return (
     <div className="max-w-2xl mx-auto w-full">
       {/* Progress */}
-      <div className="mb-8 flex items-center justify-between text-xs font-medium uppercase tracking-widest text-gray-400">
+      <div className="mb-8 flex items-center justify-between text-xs font-medium uppercase tracking-widest text-zinc-500">
         <span>Question {currentIndex + 1} / {questions.length}</span>
         <span>Score: {score}</span>
       </div>
 
-      <h3 className="text-2xl font-bold text-gray-900 mb-8 leading-relaxed">
+      <h3 className="text-2xl font-bold text-white mb-8 leading-relaxed">
         {currentQuestion.question}
       </h3>
 
       <div className="space-y-3">
         {currentQuestion.options.map((option, idx) => {
-          let stateClass = "bg-gray-50 border-transparent hover:bg-gray-100 text-gray-700";
+          let stateClass = "bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-300";
           if (showResult) {
             if (idx === currentQuestion.correctAnswer) {
-              stateClass = "bg-green-100 text-green-800 border-green-200";
+              stateClass = "bg-green-900/30 text-green-400 border-green-900/50";
             } else if (idx === selectedOption) {
-              stateClass = "bg-red-100 text-red-800 border-red-200";
+              stateClass = "bg-red-900/30 text-red-400 border-red-900/50";
             } else {
-              stateClass = "bg-gray-50 opacity-50";
+              stateClass = "bg-zinc-900 opacity-50 border-zinc-800";
             }
           } else if (selectedOption === idx) {
-            stateClass = "bg-black text-white";
+            stateClass = "bg-white text-black border-white";
           }
 
           return (
@@ -113,14 +114,14 @@ const QuizRunner: React.FC<Props> = ({ questions, materialId, onComplete }) => {
       {showResult && (
         <div className="mt-8 animate-fade-in pb-8">
           {currentQuestion.explanation && (
-              <div className="p-4 rounded-xl bg-blue-50 text-blue-900 text-sm mb-6 leading-relaxed">
-                  <span className="font-bold block mb-1">Why?</span>
+              <div className="p-4 rounded-xl bg-blue-900/30 border border-blue-900/50 text-blue-200 text-sm mb-6 leading-relaxed">
+                  <span className="font-bold block mb-1 text-blue-100">Why?</span>
                   {currentQuestion.explanation}
               </div>
           )}
           <button
             onClick={nextQuestion}
-            className="w-full py-4 bg-black text-white rounded-2xl font-bold hover:bg-gray-900 transition-colors flex justify-center items-center gap-2"
+            className="w-full py-4 bg-white text-black rounded-2xl font-bold hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2"
           >
             {currentIndex < questions.length - 1 ? 'Next' : 'Finish'} <ArrowRight size={20} />
           </button>
