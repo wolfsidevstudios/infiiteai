@@ -84,6 +84,18 @@
         background-color: #000000;
       }
       
+      /* Window Controls Overlay Support */
+      .titlebar-area {
+        position: fixed;
+        left: env(titlebar-area-x, 0);
+        top: env(titlebar-area-y, 0);
+        width: env(titlebar-area-width, 100%);
+        height: env(titlebar-area-height, 30px);
+        z-index: 100;
+        -webkit-app-region: drag;
+        app-region: drag;
+      }
+
       /* Hide scrollbar for clean UI */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
