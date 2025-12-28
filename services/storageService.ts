@@ -11,7 +11,8 @@ const KEYS = {
   LOCATIONS: 'sb_locations',
   STATS: 'sb_stats',
   TASKS: 'sb_tasks',
-  KEY_TERMS: 'sb_key_terms'
+  KEY_TERMS: 'sb_key_terms',
+  SETTINGS: 'sb_settings' // New key
 };
 
 export const saveMaterial = (material: StudyMaterial) => {
@@ -203,6 +204,21 @@ export const updateStats = (type: 'quiz' | 'card' | 'login', value?: number) => 
   localStorage.setItem(KEYS.STATS, JSON.stringify(stats));
   return stats;
 };
+
+// --- Settings Logic ---
+export interface AppSettings {
+    showSnow: boolean;
+}
+
+export const getAppSettings = (): AppSettings => {
+    const data = localStorage.getItem(KEYS.SETTINGS);
+    // Default showSnow to true if not set
+    return data ? JSON.parse(data) : { showSnow: true };
+}
+
+export const saveAppSettings = (settings: AppSettings) => {
+    localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+}
 
 export const clearAllData = () => {
     localStorage.clear();
