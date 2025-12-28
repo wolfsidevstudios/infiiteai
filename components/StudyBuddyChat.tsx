@@ -85,6 +85,49 @@ interface YoutubeVideo {
     };
 }
 
+// --- Confetti Easter Egg Component ---
+const ConfettiOverlay = () => {
+    const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#ffffff'];
+    const pieces = Array.from({ length: 150 }).map((_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 0.5,
+        duration: Math.random() * 3 + 2,
+        bg: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 8 + 4,
+        rotation: Math.random() * 360
+    }));
+
+    return (
+        <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+             {pieces.map(p => (
+                 <div 
+                    key={p.id}
+                    className="absolute rounded-sm opacity-90"
+                    style={{
+                        left: `${p.left}vw`,
+                        top: '-20px',
+                        width: `${p.size}px`,
+                        height: `${p.size * 0.6}px`,
+                        backgroundColor: p.bg,
+                        transform: `rotate(${p.rotation}deg)`,
+                        animation: `confetti ${p.duration}s linear infinite ${p.delay}s`
+                    }}
+                 />
+             ))}
+             <style>{`
+                 @keyframes confetti {
+                     0% { transform: translateY(-10vh) rotate(0deg) translateX(0); opacity: 1; }
+                     25% { transform: translateY(25vh) rotate(90deg) translateX(20px); }
+                     50% { transform: translateY(50vh) rotate(180deg) translateX(-20px); }
+                     75% { transform: translateY(75vh) rotate(270deg) translateX(10px); }
+                     100% { transform: translateY(110vh) rotate(360deg) translateX(0); opacity: 0; }
+                 }
+             `}</style>
+        </div>
+    );
+};
+
 const ChartRenderer: React.FC<{ config: ChartConfig }> = ({ config }) => {
     // Helper to determine if X axis should be numeric (for accurate spacing)
     // We check if the 'x' values in data are numbers
@@ -798,6 +841,7 @@ const StudyBuddyChat = () => {
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [showConfetti, setShowConfetti] = useState(false);
     const chatSession = useRef<Chat | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -812,6 +856,12 @@ const StudyBuddyChat = () => {
     const handleSend = async (e?: React.FormEvent) => {
         e?.preventDefault();
         if (!input.trim() || !chatSession.current) return;
+
+        // Confetti Easter Egg
+        if (input.toLowerCase().includes('happy new year')) {
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 6000); // Confetti lasts 6 seconds
+        }
 
         const userMsg: Message = { id: Date.now().toString(), role: 'user', text: input };
         setMessages(prev => [...prev, userMsg]);
@@ -895,6 +945,8 @@ const StudyBuddyChat = () => {
 
     return (
         <div className="flex flex-col h-full relative">
+             {showConfetti && <ConfettiOverlay />}
+
              {/* Header */}
              <div className="p-4 flex items-center justify-between z-10">
                  <div className="flex items-center gap-3">
