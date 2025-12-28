@@ -68,7 +68,8 @@ import {
   Key,
   ChevronDown,
   HelpCircle,
-  MessageSquare
+  MessageSquare,
+  ChevronLeft
 } from 'lucide-react';
 
 import { StudyMaterial, Flashcard, QuizQuestion, StudyPlan, ConceptMapNode, Task, StudyLocation, SearchResult } from './types';
@@ -99,6 +100,16 @@ import FlashcardDeck from './components/FlashcardDeck';
 import QuizRunner from './components/QuizRunner';
 import DictionarySlide from './components/DictionarySlide';
 import StudyBuddyChat from './components/StudyBuddyChat';
+
+// Global type for Google GSI
+declare global {
+    interface Window {
+        google: any;
+    }
+}
+
+const LOGO_URL = "https://iili.io/fVhsBY7.png";
+const GOOGLE_CLIENT_ID = "562922803230-1co4tjg47qh3kfcmd2djjl7d8so9rtro.apps.googleusercontent.com";
 
 // --- Shared Liquid Glass Component ---
 interface LiquidGlassProps {
@@ -159,72 +170,6 @@ const SnowOverlay = () => {
                     animation-iteration-count: infinite;
                 }
             `}</style>
-        </div>
-    );
-};
-
-// --- Shared 3D Carousel Component ---
-const Carousel3D = ({ items, activeIndex, onNavigate, loading = false }: { items: React.ReactNode[], activeIndex: number, onNavigate: (i: number) => void, loading?: boolean }) => {
-    return (
-        <div className="w-full h-full flex items-center justify-center relative overflow-hidden" style={{ perspective: '1000px' }}>
-             {items.map((item, index) => {
-                 const offset = index - activeIndex;
-                 const isActive = index === activeIndex;
-                 // Optimization: Only render visible or near-visible items
-                 if (Math.abs(offset) > 2) return null;
-
-                 return (
-                     <div 
-                        key={index}
-                        onClick={() => !loading && onNavigate(index)}
-                        className={`
-                            absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                            transition-all duration-700 cubic-bezier(0.25, 0.46, 0.45, 0.94)
-                            w-[90%] md:w-[80%] max-w-5xl h-[70vh] md:h-[75vh] 
-                            bg-zinc-900 rounded-[3rem] shadow-2xl border border-zinc-800 overflow-hidden
-                            ${isActive ? 'z-20 opacity-100 shadow-[0_30px_60px_rgba(0,0,0,0.5)]' : 'z-10 opacity-40 cursor-pointer hover:opacity-60 blur-[1px]'}
-                        `}
-                        style={{
-                            transform: `translate(-50%, -50%) translateX(${offset * 105}%) scale(${isActive ? 1 : 0.85}) rotateY(${offset * -15}deg)`,
-                            pointerEvents: isActive ? 'auto' : (loading ? 'none' : 'auto')
-                        }}
-                     >
-                         {item}
-                     </div>
-                 );
-             })}
-             
-             {!loading && items.length > 1 && (
-                 <>
-                    <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-3 z-30 pointer-events-none">
-                        {items.map((_, i) => (
-                            <button 
-                                key={i}
-                                onClick={() => onNavigate(i)}
-                                className={`
-                                    h-2 rounded-full transition-all pointer-events-auto shadow-sm
-                                    ${i === activeIndex ? 'bg-white w-8' : 'bg-zinc-700 w-2 hover:bg-zinc-600'}
-                                `}
-                            />
-                        ))}
-                    </div>
-
-                    <button 
-                        onClick={() => activeIndex > 0 && onNavigate(activeIndex - 1)}
-                        disabled={activeIndex === 0}
-                        className={`hidden md:block absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-zinc-800 border border-zinc-700 shadow-lg text-white z-30 transition-opacity hover:scale-110 ${activeIndex === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                    >
-                        <ArrowLeft size={24} />
-                    </button>
-                    <button 
-                        onClick={() => activeIndex < items.length - 1 && onNavigate(activeIndex + 1)}
-                        disabled={activeIndex === items.length - 1}
-                        className={`hidden md:block absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-zinc-800 border border-zinc-700 shadow-lg text-white z-30 transition-opacity hover:scale-110 ${activeIndex === items.length - 1 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                    >
-                        <ArrowRight size={24} />
-                    </button>
-                 </>
-             )}
         </div>
     );
 };
@@ -533,49 +478,49 @@ const Navbar = ({ onOpenSettings }: { onOpenSettings: () => void }) => {
     <nav className="hidden md:flex fixed top-0 left-0 w-full z-50 justify-center pt-6 pb-4 pointer-events-none">
       <div className={`
         px-6 py-2 rounded-full flex items-center gap-6 transition-colors duration-300 pointer-events-auto
-        bg-zinc-900/80 backdrop-blur-md border border-zinc-800 shadow-xl
+        bg-transparent
         text-white
       `}>
         <div className="hidden md:flex items-center gap-2 mr-2 cursor-pointer" onClick={() => navigate('/')}>
-            <Sparkles size={16} className="text-white" />
-            <span className="font-bold text-sm tracking-tight">Infinite Study AI</span>
+            <img src={LOGO_URL} alt="Logo" className="w-8 h-8 rounded-full" />
+            <span className="font-bold text-sm tracking-tight text-white drop-shadow-md">Infinite Study AI</span>
         </div>
-        <div className="w-px h-4 hidden md:block bg-zinc-700"></div>
+        <div className="w-px h-4 hidden md:block bg-white/20"></div>
         
         <button 
           onClick={() => navigate('/')} 
-          className={`text-sm font-medium transition-colors ${isActive('/') ? 'text-white' : 'text-zinc-400 hover:text-zinc-300'}`}
+          className={`text-sm font-medium transition-colors ${isActive('/') ? 'text-white drop-shadow-md' : 'text-white/60 hover:text-white'}`}
         >
           Home
         </button>
         <button 
           onClick={() => navigate('/library')} 
-          className={`text-sm font-medium transition-colors ${isActive('/library') ? 'text-white' : 'text-zinc-400 hover:text-zinc-300'}`}
+          className={`text-sm font-medium transition-colors ${isActive('/library') ? 'text-white drop-shadow-md' : 'text-white/60 hover:text-white'}`}
         >
           Library
         </button>
         <button 
           onClick={() => navigate('/chat')} 
-          className={`text-sm font-medium transition-colors ${isActive('/chat') ? 'text-white' : 'text-zinc-400 hover:text-zinc-300'}`}
+          className={`text-sm font-medium transition-colors ${isActive('/chat') ? 'text-white drop-shadow-md' : 'text-white/60 hover:text-white'}`}
         >
           Chat
         </button>
 
-        <div className="w-px h-4 bg-zinc-700"></div>
+        <div className="w-px h-4 bg-white/20"></div>
 
         <button 
           onClick={onOpenSettings}
-          className="text-sm font-medium transition-colors text-zinc-400 hover:text-white flex items-center gap-2"
+          className="text-sm font-medium transition-colors text-white/60 hover:text-white flex items-center gap-2"
           title="Settings"
         >
           <Settings size={18} />
         </button>
         
-        <div className="w-px h-4 bg-zinc-700"></div>
+        <div className="w-px h-4 bg-white/20"></div>
 
         <button 
           onClick={() => navigate('/workspace')} 
-          className="text-sm font-medium px-3 py-1 bg-white text-black rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2"
+          className="text-sm font-medium px-3 py-1 bg-white text-black rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2 shadow-lg"
         >
            <Layout size={14} /> Workspace
         </button>
@@ -954,7 +899,7 @@ const StudyDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [material, setMaterial] = useState<StudyMaterial | null>(null);
-    const [tab, setTab] = useState<'dashboard' | 'flashcards' | 'quiz' | 'map' | 'terms'>('dashboard');
+    const [currentIndex, setCurrentIndex] = useState(0);
     const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
     const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
     const [locations, setLocations] = useState<StudyLocation[]>([]);
@@ -986,10 +931,103 @@ const StudyDetail = () => {
 
     if (!material) return null;
 
+    // Define Views for Carousel
+    const slides = [
+        {
+            id: 'dashboard',
+            label: 'Overview',
+            icon: Layout,
+            component: (
+                <div className="h-full overflow-y-auto p-6 md:p-10 scrollbar-hide">
+                    <div className="max-w-4xl mx-auto space-y-8 pb-20">
+                        {/* Overview Hero */}
+                        <div className="p-8 rounded-3xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 shadow-xl relative overflow-hidden">
+                            <div className="relative z-10">
+                                <h3 className="text-zinc-400 uppercase tracking-widest text-xs font-bold mb-2">Overview</h3>
+                                <p className="text-xl md:text-2xl font-medium leading-relaxed text-white">
+                                    {overview}
+                                </p>
+                            </div>
+                            <Sparkles className="absolute top-4 right-4 text-white/5 w-32 h-32" />
+                        </div>
+
+                        {/* Summary Content */}
+                        <div className="prose prose-invert prose-lg max-w-none prose-headings:font-bold prose-h3:text-white/90 prose-p:text-zinc-400 prose-li:text-zinc-400 prose-strong:text-white" 
+                             dangerouslySetInnerHTML={{ __html: material.content }} 
+                        />
+                    </div>
+                </div>
+            )
+        },
+        {
+            id: 'flashcards',
+            label: 'Flashcards',
+            icon: Layers,
+            component: (
+                <div className="h-full flex flex-col pb-20">
+                    <FlashcardDeck cards={flashcards} onUpdateCard={(updated) => {
+                         const newCards = flashcards.map(c => c.id === updated.id ? updated : c);
+                         setFlashcards(newCards);
+                         saveFlashcards(material.id, newCards);
+                    }} />
+                </div>
+            )
+        },
+        {
+            id: 'quiz',
+            label: 'Quiz',
+            icon: Brain,
+            component: (
+                <div className="h-full flex flex-col p-6 md:p-10 overflow-y-auto pb-20">
+                    {quizQuestions.length > 0 ? (
+                        <QuizRunner 
+                            questions={quizQuestions} 
+                            materialId={material.id} 
+                            onComplete={() => {
+                                alert("Quiz recorded!");
+                                setCurrentIndex(0); // Go back to dashboard
+                            }} 
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-zinc-500">
+                            <Brain size={48} className="mb-4" />
+                            <p>No quiz generated for this set.</p>
+                        </div>
+                    )}
+                </div>
+            )
+        }
+    ];
+
+    if (locations.length > 0) {
+        slides.push({
+            id: 'map',
+            label: 'Locations',
+            icon: MapIcon,
+            component: <MapSlide locations={locations} />
+        });
+    }
+
+    if (terms.length > 0) {
+        slides.push({
+            id: 'terms',
+            label: 'Dictionary',
+            icon: BookA,
+            component: (
+                <div className="h-full p-6 pb-20">
+                    <DictionarySlide terms={terms} />
+                </div>
+            )
+        });
+    }
+
+    const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % slides.length);
+    const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
+
     return (
         <div className="min-h-screen bg-black text-white pt-6 md:pt-24 pb-24 md:pb-12 px-4 md:px-8 flex flex-col h-screen overflow-hidden">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0 z-20 relative">
                 <div>
                     <div className="flex items-center gap-2 text-zinc-500 text-sm mb-1 cursor-pointer hover:text-white" onClick={() => navigate('/library')}>
                         <ArrowLeft size={14} /> Back to Library
@@ -1001,94 +1039,54 @@ const StudyDetail = () => {
                         </span>
                     </h1>
                 </div>
-
-                <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 overflow-x-auto">
-                    {[
-                        { id: 'dashboard', label: 'Dashboard', icon: Layout },
-                        { id: 'flashcards', label: 'Cards', icon: Layers },
-                        { id: 'quiz', label: 'Quiz', icon: Brain },
-                        { id: 'map', label: 'Map', icon: MapIcon },
-                        { id: 'terms', label: 'Dictionary', icon: BookA }
-                    ].map(t => (
-                        <button
-                            key={t.id}
-                            onClick={() => setTab(t.id as any)}
-                            className={`
-                                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
-                                ${tab === t.id ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}
-                            `}
-                        >
-                            <t.icon size={16} /> {t.label}
-                        </button>
-                    ))}
+                
+                {/* Slide Title for Mobile/Desktop */}
+                <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-full border border-zinc-800">
+                    {React.createElement(slides[currentIndex].icon, { size: 16, className: "text-zinc-400" })}
+                    <span className="text-sm font-bold text-white">{slides[currentIndex].label}</span>
                 </div>
             </div>
 
-            {/* Content Area */}
-            <div className="flex-1 min-h-0 bg-zinc-950 rounded-3xl border border-zinc-900 overflow-hidden relative shadow-2xl">
+            {/* Carousel Content Area */}
+            <div className="flex-1 min-h-0 bg-zinc-950 rounded-3xl border border-zinc-900 overflow-hidden relative shadow-2xl group">
                 
-                {tab === 'dashboard' && (
-                    <div className="h-full overflow-y-auto p-6 md:p-10 scrollbar-hide">
-                         <div className="max-w-4xl mx-auto space-y-8">
-                             {/* Overview Hero */}
-                             <div className="p-8 rounded-3xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 shadow-xl relative overflow-hidden">
-                                 <div className="relative z-10">
-                                     <h3 className="text-zinc-400 uppercase tracking-widest text-xs font-bold mb-2">Overview</h3>
-                                     <p className="text-xl md:text-2xl font-medium leading-relaxed text-white">
-                                         {overview}
-                                     </p>
-                                 </div>
-                                 <Sparkles className="absolute top-4 right-4 text-white/5 w-32 h-32" />
-                             </div>
+                {/* The Slide */}
+                <div className="absolute inset-0">
+                    {slides[currentIndex].component}
+                </div>
 
-                             {/* Summary Content */}
-                             <div className="prose prose-invert prose-lg max-w-none prose-headings:font-bold prose-h3:text-white/90 prose-p:text-zinc-400 prose-li:text-zinc-400 prose-strong:text-white" 
-                                  dangerouslySetInnerHTML={{ __html: material.content }} 
-                             />
-                         </div>
-                    </div>
-                )}
+                {/* Navigation Arrows */}
+                <button 
+                    onClick={prevSlide}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-black/40 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm border border-white/5 opacity-0 group-hover:opacity-100 z-30"
+                >
+                    <ChevronLeft size={32} />
+                </button>
+                <button 
+                    onClick={nextSlide}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-black/40 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm border border-white/5 opacity-0 group-hover:opacity-100 z-30"
+                >
+                    <ChevronRight size={32} />
+                </button>
 
-                {tab === 'flashcards' && (
-                    <div className="h-full flex flex-col">
-                        <FlashcardDeck cards={flashcards} onUpdateCard={(updated) => {
-                             const newCards = flashcards.map(c => c.id === updated.id ? updated : c);
-                             setFlashcards(newCards);
-                             saveFlashcards(material.id, newCards);
-                        }} />
-                    </div>
-                )}
-
-                {tab === 'quiz' && (
-                    <div className="h-full flex flex-col p-6 md:p-10 overflow-y-auto">
-                        {quizQuestions.length > 0 ? (
-                            <QuizRunner 
-                                questions={quizQuestions} 
-                                materialId={material.id} 
-                                onComplete={() => {
-                                    alert("Quiz recorded!");
-                                    setTab('dashboard');
-                                }} 
-                            />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-zinc-500">
-                                <Brain size={48} className="mb-4" />
-                                <p>No quiz generated for this set.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {tab === 'map' && (
-                    <MapSlide locations={locations} />
-                )}
-
-                {tab === 'terms' && (
-                    <div className="h-full p-6">
-                        <DictionarySlide terms={terms} />
-                    </div>
-                )}
-
+                {/* Bottom Indicators (Carousel Dots / Tabs) */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30 p-2 rounded-full bg-black/60 backdrop-blur-md border border-zinc-800">
+                    {slides.map((slide, idx) => (
+                        <button
+                            key={slide.id}
+                            onClick={() => setCurrentIndex(idx)}
+                            className={`
+                                relative px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5
+                                ${idx === currentIndex 
+                                    ? 'bg-white text-black shadow-lg pl-2 pr-3' 
+                                    : 'text-zinc-400 hover:text-white hover:bg-white/10'}
+                            `}
+                        >
+                            {idx === currentIndex && React.createElement(slide.icon, { size: 12 })}
+                            {idx === currentIndex ? slide.label : <div className="w-1.5 h-1.5 rounded-full bg-current" />}
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
     );
@@ -1234,6 +1232,13 @@ const LandingPage = () => {
 
   return (
     <div className="w-full bg-black">
+      {/* Product Hunt Badge - Centered Bottom */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+           <a href="https://www.producthunt.com/products/infinite-study-ai?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-infinite-study-ai" target="_blank" rel="noopener noreferrer">
+               <img alt="Infinite Study AI -  Turn notes into summaries, quizzes & flashcards instantly  | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1055227&theme=dark&t=1766893408138" />
+           </a>
+      </div>
+
       {/* Hero Section */}
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden">
       
@@ -1425,7 +1430,7 @@ const LandingPage = () => {
       {/* Footer */}
       <footer className="bg-black py-12 border-t border-zinc-900 text-center text-zinc-600 text-sm">
         <div className="flex items-center justify-center gap-2 mb-4">
-             <Sparkles size={16} className="text-zinc-500"/>
+             <img src={LOGO_URL} className="w-6 h-6 rounded-full grayscale opacity-50" alt="Logo" />
              <span className="font-bold text-zinc-200">Infinite Study AI</span>
         </div>
         <p>&copy; {new Date().getFullYear()} Infinite Study AI. Built with Google Gemini.</p>
@@ -1434,40 +1439,38 @@ const LandingPage = () => {
   );
 };
 
-// --- Main App Component ---
 const App = () => {
-  const [showSnow, setShowSnow] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <Router>
-      {showSnow && <SnowOverlay />}
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-      
-      {/* Easter Egg Button */}
-      <button 
-        onClick={() => setShowSnow(!showSnow)}
-        className="fixed bottom-24 md:bottom-6 left-6 z-[100] bg-zinc-900/90 backdrop-blur text-xs font-bold text-blue-400 px-4 py-2 rounded-2xl shadow-lg border border-zinc-800 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-      >
-        <Snowflake size={14} className={showSnow ? 'animate-spin' : ''} />
-        Let it snow
-      </button>
+      <div className="min-h-screen bg-black text-white font-sans selection:bg-white/20">
+        <SnowOverlay />
+        
+        <Routes>
+           <Route path="/workspace" element={<Workspace onOpenSettings={() => setIsSettingsOpen(true)} />} />
+           
+           <Route path="*" element={
+              <>
+                 <Navbar onOpenSettings={() => setIsSettingsOpen(true)} />
+                 <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/library" element={<Library />} />
+                    <Route path="/study/:id" element={<StudyDetail />} />
+                    <Route path="/configure" element={<ConfigurePage />} />
+                    <Route path="/generating" element={<LoadingScreen />} />
+                    <Route path="/chat" element={<ChatPage />} />
+                    <Route path="/search" element={<SearchResultsPage />} />
+                    <Route path="/notes" element={<NoteTakerPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                 </Routes>
+                 <MobileNavbar onOpenSettings={() => setIsSettingsOpen(true)} />
+              </>
+           } />
+        </Routes>
 
-      <Navbar onOpenSettings={() => setIsSettingsOpen(true)} />
-      <MobileNavbar onOpenSettings={() => setIsSettingsOpen(true)} />
-      
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/configure" element={<ConfigurePage />} />
-        <Route path="/generating" element={<LoadingScreen />} />
-        <Route path="/search" element={<SearchResultsPage />} />
-        <Route path="/notes" element={<NoteTakerPage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/library" element={<Library />} />
-        <Route path="/study/:id" element={<StudyDetail />} />
-        <Route path="/workspace" element={<Workspace onOpenSettings={() => setIsSettingsOpen(true)} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      </div>
     </Router>
   );
 };
