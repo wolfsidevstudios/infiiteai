@@ -4,6 +4,7 @@
   "short_name": "InfiniteStudy",
   "start_url": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait-primary",
@@ -17,6 +18,48 @@
       "src": "https://iili.io/fVhsBY7.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "shortcuts": [
+    {
+      "name": "Quick Search",
+      "short_name": "Search",
+      "description": "Jump directly to search",
+      "url": "./#/search",
+      "icons": [{ "src": "https://iili.io/fVhsBY7.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New Note",
+      "short_name": "Note",
+      "description": "Start a new note",
+      "url": "./#/notes",
+      "icons": [{ "src": "https://iili.io/fVhsBY7.png", "sizes": "192x192" }]
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": {
+        "text/plain": [".txt", ".md"],
+        "text/csv": [".csv"]
+      },
+      "icons": [{ "src": "https://iili.io/fVhsBY7.png", "sizes": "192x192" }]
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+study",
+      "url": "./?action=%s"
     }
   ],
   "widgets": [
