@@ -158,3 +158,62 @@ self.addEventListener('activate', (event) => {
   );
   self.clients.claim();
 });
+
+// --- PUSH NOTIFICATIONS ---
+self.addEventListener('push', function(event) {
+  let data = { title: 'Infinite Study AI', body: 'Time to study!' };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: 'https://iili.io/fVhsBY7.png',
+    badge: 'https://iili.io/fVhsBY7.png',
+    vibrate: [100, 50, 100],
+    data: {
+      url: './'
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({type: 'window'}).then( windowClients => {
+      // Check if there is already a window/tab open with the target URL
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
+        if (client.url.includes('infinitestudy') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('./');
+      }
+    })
+  );
+});
+
+// --- BACKGROUND SYNC ---
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'sync-study-data') {
+    console.log('[ServiceWorker] Background sync executed for study data.');
+  }
+});
+
+// --- PERIODIC BACKGROUND SYNC ---
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'daily-streak-check') {
+    console.log('[ServiceWorker] Periodic sync: Checking daily streak...');
+    // In a real app, fetch fresh data here to update cache/widget
+  }
+});
