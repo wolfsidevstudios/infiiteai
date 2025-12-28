@@ -40,19 +40,19 @@ const FlashcardDeck: React.FC<Props> = ({ cards, onUpdateCard }) => {
     setIsFlipped(false);
   };
 
-  if (cards.length === 0) return <div className="text-gray-400">No cards available.</div>;
+  if (cards.length === 0) return <div className="text-zinc-500">No cards available.</div>;
 
   if (finished) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
-        <div className="w-20 h-20 bg-black text-white rounded-full flex items-center justify-center mb-6">
+        <div className="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center mb-6">
           <Check size={40} />
         </div>
-        <h3 className="text-3xl font-bold mb-2">All Done!</h3>
-        <p className="text-gray-500 mb-8">You've reviewed all cards.</p>
+        <h3 className="text-3xl font-bold mb-2 text-white">All Done!</h3>
+        <p className="text-zinc-500 mb-8">You've reviewed all cards.</p>
         <button
           onClick={restart}
-          className="flex items-center gap-2 px-8 py-3 bg-gray-100 text-black rounded-full hover:bg-gray-200 transition-colors font-medium"
+          className="flex items-center gap-2 px-8 py-3 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 transition-colors font-medium border border-zinc-700"
         >
           <RotateCcw size={18} /> Review Again
         </button>
@@ -62,7 +62,7 @@ const FlashcardDeck: React.FC<Props> = ({ cards, onUpdateCard }) => {
 
   return (
     <div className="w-full max-w-xl mx-auto flex flex-col h-full justify-center">
-      <div className="text-center text-xs text-gray-400 font-medium uppercase tracking-widest mb-6">
+      <div className="text-center text-xs text-zinc-500 font-medium uppercase tracking-widest mb-6">
         Card {currentIndex + 1} / {cards.length}
       </div>
 
@@ -73,18 +73,18 @@ const FlashcardDeck: React.FC<Props> = ({ cards, onUpdateCard }) => {
         <div className={`relative w-full h-full duration-500 transform-style-3d transition-all ${isFlipped ? 'rotate-y-180' : ''}`}>
           
           {/* Front */}
-          <div className="absolute w-full h-full bg-gray-50 rounded-3xl p-8 flex flex-col items-center justify-center text-center backface-hidden border border-gray-100 shadow-inner overflow-y-auto no-scrollbar">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 sticky top-0 bg-gray-50 pb-2 w-full">Question</span>
-            <p className="text-2xl md:text-3xl font-medium leading-relaxed text-gray-900">
+          <div className="absolute w-full h-full bg-zinc-900 rounded-3xl p-8 flex flex-col items-center justify-center text-center backface-hidden border border-zinc-800 shadow-inner overflow-y-auto no-scrollbar">
+            <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-4 sticky top-0 bg-zinc-900 pb-2 w-full">Question</span>
+            <p className="text-2xl md:text-3xl font-medium leading-relaxed text-white">
               {currentCard.front}
             </p>
-            <p className="absolute bottom-6 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">Click to flip</p>
+            <p className="absolute bottom-6 text-xs text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity">Click to flip</p>
           </div>
 
           {/* Back */}
-          <div className="absolute w-full h-full bg-black rounded-3xl p-8 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 text-white overflow-y-auto no-scrollbar">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 sticky top-0 bg-black pb-2 w-full">Answer</span>
-            <p className="text-xl md:text-2xl leading-relaxed">
+          <div className="absolute w-full h-full bg-black rounded-3xl p-8 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 text-white border border-zinc-800 overflow-y-auto no-scrollbar">
+            <span className="text-xs font-bold text-zinc-600 uppercase tracking-wider mb-4 sticky top-0 bg-black pb-2 w-full">Answer</span>
+            <p className="text-xl md:text-2xl leading-relaxed text-zinc-200">
               {currentCard.back}
             </p>
           </div>
@@ -93,9 +93,9 @@ const FlashcardDeck: React.FC<Props> = ({ cards, onUpdateCard }) => {
 
       {isFlipped && (
         <div className="flex justify-center gap-4 mt-8 animate-slide-up">
-          <button onClick={(e) => { e.stopPropagation(); handleNext('hard'); }} className="p-4 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"><ThumbsDown size={24} /></button>
-          <button onClick={(e) => { e.stopPropagation(); handleNext('medium'); }} className="px-8 py-4 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 font-bold transition-colors">Okay</button>
-          <button onClick={(e) => { e.stopPropagation(); handleNext('easy'); }} className="p-4 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition-colors"><ThumbsUp size={24} /></button>
+          <button onClick={(e) => { e.stopPropagation(); handleNext('hard'); }} className="p-4 rounded-full bg-red-900/30 text-red-400 hover:bg-red-900/50 transition-colors border border-red-900/50"><ThumbsDown size={24} /></button>
+          <button onClick={(e) => { e.stopPropagation(); handleNext('medium'); }} className="px-8 py-4 rounded-full bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-bold transition-colors border border-zinc-700">Okay</button>
+          <button onClick={(e) => { e.stopPropagation(); handleNext('easy'); }} className="p-4 rounded-full bg-green-900/30 text-green-400 hover:bg-green-900/50 transition-colors border border-green-900/50"><ThumbsUp size={24} /></button>
         </div>
       )}
       
