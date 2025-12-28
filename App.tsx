@@ -72,7 +72,12 @@ import {
   ChevronLeft,
   ToggleLeft,
   ToggleRight,
-  Copy
+  Copy,
+  BellRing,
+  Volume2,
+  UserPlus,
+  CreditCard,
+  Maximize
 } from 'lucide-react';
 
 import { StudyMaterial, Flashcard, QuizQuestion, StudyPlan, ConceptMapNode, Task, StudyLocation, SearchResult } from './types';
@@ -99,7 +104,8 @@ import {
   getKeyTerms,
   getAppSettings,
   saveAppSettings,
-  syncWidgetData
+  syncWidgetData,
+  registerPeriodicSync
 } from './services/storageService';
 import { generateSummary, generateFlashcards, generateQuiz, generateShortOverview, generateConceptMap, generateLocationData, performWebSearch, generateStructuredNotes, generateKeyTerms, setApiKey, getApiKey } from './services/geminiService';
 import FlashcardDeck from './components/FlashcardDeck';
@@ -107,10 +113,11 @@ import QuizRunner from './components/QuizRunner';
 import DictionarySlide from './components/DictionarySlide';
 import StudyBuddyChat from './components/StudyBuddyChat';
 
-// Global type for Google GSI
+// Global type for Google GSI and Window features
 declare global {
     interface Window {
         google: any;
+        launchQueue?: any;
     }
 }
 
@@ -309,6 +316,64 @@ const SettingsModal = ({ isOpen, onClose, showSnow, onToggleSnow }: SettingsModa
         onClose();
     };
 
+    const requestNotifications = async () => {
+        if ('Notification' in window) {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                alert("Notifications enabled! You'll stay updated.");
+            } else {
+                alert("Permission denied or dismissed.");
+            }
+        } else {
+            alert("Your browser does not support notifications.");
+        }
+    };
+    
+    // Feature 8: Payment Request API
+    const handleProUpgrade = async () => {
+        if (!('PaymentRequest' in window)) {
+            alert("Payment Request API not supported on this device.");
+            return;
+        }
+        
+        const supportedInstruments = [{ supportedMethods: 'basic-card' }];
+        const details = {
+            total: { label: 'Infinite Study Pro', amount: { currency: 'USD', value: '4.99' } }
+        };
+        
+        try {
+            const request = new PaymentRequest(supportedInstruments, details);
+            const paymentResponse = await request.show();
+            // Simulate processing
+            setTimeout(async () => {
+                await paymentResponse.complete('success');
+                alert("Welcome to Pro! (Simulation)");
+            }, 1000);
+        } catch (e) {
+            console.log("Payment cancelled or failed", e);
+        }
+    };
+    
+    // Feature 10: Contact Picker API
+    const handleShare = async () => {
+        // @ts-ignore
+        if ('contacts' in navigator && 'ContactsManager' in window) {
+            try {
+                const props = ['name', 'tel', 'email'];
+                const opts = { multiple: false };
+                // @ts-ignore
+                const contacts = await navigator.contacts.select(props, opts);
+                if (contacts.length) {
+                    alert(`Sharing Infinite Study with ${contacts[0].name[0]}!`);
+                }
+            } catch (ex) {
+                console.log(ex);
+            }
+        } else {
+            alert("Contact Picker not supported on this device (try Android).");
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -332,7 +397,7 @@ const SettingsModal = ({ isOpen, onClose, showSnow, onToggleSnow }: SettingsModa
                     {/* Visual Preferences */}
                     <div>
                         <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Appearance</h3>
-                        <div className="flex items-center justify-between p-4 bg-black rounded-xl border border-zinc-800">
+                        <div className="flex items-center justify-between p-4 bg-black rounded-xl border border-zinc-800 mb-3">
                              <div className="flex items-center gap-3">
                                  <Snowflake size={20} className={showSnow ? 'text-blue-400' : 'text-zinc-600'} />
                                  <div>
@@ -345,6 +410,27 @@ const SettingsModal = ({ isOpen, onClose, showSnow, onToggleSnow }: SettingsModa
                                 className={`w-12 h-6 rounded-full transition-colors relative ${showSnow ? 'bg-blue-600' : 'bg-zinc-700'}`}
                              >
                                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${showSnow ? 'left-7' : 'left-1'}`} />
+                             </button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-4 bg-black rounded-xl border border-zinc-800 cursor-pointer hover:bg-zinc-950 mb-3" onClick={requestNotifications}>
+                             <div className="flex items-center gap-3">
+                                 <BellRing size={20} className="text-yellow-500" />
+                                 <div>
+                                     <p className="text-white font-medium text-sm">Notifications</p>
+                                     <p className="text-xs text-zinc-500">Enable study reminders</p>
+                                 </div>
+                             </div>
+                             <ChevronRight size={16} className="text-zinc-500" />
+                        </div>
+                        
+                        {/* New Feature Buttons */}
+                        <div className="flex gap-2">
+                             <button onClick={handleProUpgrade} className="flex-1 p-3 bg-gradient-to-r from-purple-900 to-purple-800 rounded-xl border border-purple-700 flex items-center justify-center gap-2 text-xs font-bold text-white hover:opacity-90">
+                                 <CreditCard size={14} /> Upgrade Pro
+                             </button>
+                             <button onClick={handleShare} className="flex-1 p-3 bg-zinc-800 rounded-xl border border-zinc-700 flex items-center justify-center gap-2 text-xs font-bold text-zinc-300 hover:text-white">
+                                 <UserPlus size={14} /> Share
                              </button>
                         </div>
                     </div>
@@ -581,57 +667,62 @@ const Navbar = ({ onOpenSettings }: { onOpenSettings: () => void }) => {
   if (location.pathname === '/workspace') return null;
 
   return (
-    <nav className="hidden md:flex fixed top-0 left-0 w-full z-50 justify-center pt-6 pb-4 pointer-events-none">
-      <div className={`
-        px-6 py-2 rounded-full flex items-center gap-6 transition-colors duration-300 pointer-events-auto
-        bg-transparent
-        text-white
-      `}>
-        <div className="hidden md:flex items-center gap-2 mr-2 cursor-pointer" onClick={() => navigate('/')}>
-            <img src={LOGO_URL} alt="Logo" className="w-8 h-8 rounded-full" />
-            <span className="font-bold text-sm tracking-tight text-white drop-shadow-md">Infinite Study AI</span>
+    <>
+      {/* Feature 5: Window Controls Overlay Region */}
+      <div className="titlebar-area hidden md:block" />
+      
+      <nav className="hidden md:flex fixed top-0 left-0 w-full z-50 justify-center pt-6 pb-4 pointer-events-none">
+        <div className={`
+          px-6 py-2 rounded-full flex items-center gap-6 transition-colors duration-300 pointer-events-auto
+          bg-transparent
+          text-white
+        `}>
+          <div className="hidden md:flex items-center gap-2 mr-2 cursor-pointer" onClick={() => navigate('/')}>
+              <img src={LOGO_URL} alt="Logo" className="w-8 h-8 rounded-full" />
+              <span className="font-bold text-sm tracking-tight text-white drop-shadow-md">Infinite Study AI</span>
+          </div>
+          <div className="w-px h-4 hidden md:block bg-white/20"></div>
+          
+          <button 
+            onClick={() => navigate('/')} 
+            className={`text-sm font-medium transition-colors ${isActive('/') ? 'text-white drop-shadow-md' : 'text-white/60 hover:text-white'}`}
+          >
+            Home
+          </button>
+          <button 
+            onClick={() => navigate('/library')} 
+            className={`text-sm font-medium transition-colors ${isActive('/library') ? 'text-white drop-shadow-md' : 'text-white/60 hover:text-white'}`}
+          >
+            Library
+          </button>
+          <button 
+            onClick={() => navigate('/chat')} 
+            className={`text-sm font-medium transition-colors ${isActive('/chat') ? 'text-white drop-shadow-md' : 'text-white/60 hover:text-white'}`}
+          >
+            Chat
+          </button>
+
+          <div className="w-px h-4 bg-white/20"></div>
+
+          <button 
+            onClick={onOpenSettings}
+            className="text-sm font-medium transition-colors text-white/60 hover:text-white flex items-center gap-2"
+            title="Settings"
+          >
+            <Settings size={18} />
+          </button>
+          
+          <div className="w-px h-4 bg-white/20"></div>
+
+          <button 
+            onClick={() => navigate('/workspace')} 
+            className="text-sm font-medium px-3 py-1 bg-white text-black rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2 shadow-lg"
+          >
+             <Layout size={14} /> Workspace
+          </button>
         </div>
-        <div className="w-px h-4 hidden md:block bg-white/20"></div>
-        
-        <button 
-          onClick={() => navigate('/')} 
-          className={`text-sm font-medium transition-colors ${isActive('/') ? 'text-white drop-shadow-md' : 'text-white/60 hover:text-white'}`}
-        >
-          Home
-        </button>
-        <button 
-          onClick={() => navigate('/library')} 
-          className={`text-sm font-medium transition-colors ${isActive('/library') ? 'text-white drop-shadow-md' : 'text-white/60 hover:text-white'}`}
-        >
-          Library
-        </button>
-        <button 
-          onClick={() => navigate('/chat')} 
-          className={`text-sm font-medium transition-colors ${isActive('/chat') ? 'text-white drop-shadow-md' : 'text-white/60 hover:text-white'}`}
-        >
-          Chat
-        </button>
-
-        <div className="w-px h-4 bg-white/20"></div>
-
-        <button 
-          onClick={onOpenSettings}
-          className="text-sm font-medium transition-colors text-white/60 hover:text-white flex items-center gap-2"
-          title="Settings"
-        >
-          <Settings size={18} />
-        </button>
-        
-        <div className="w-px h-4 bg-white/20"></div>
-
-        <button 
-          onClick={() => navigate('/workspace')} 
-          className="text-sm font-medium px-3 py-1 bg-white text-black rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2 shadow-lg"
-        >
-           <Layout size={14} /> Workspace
-        </button>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 };
 
@@ -1062,6 +1153,27 @@ const StudyDetail = () => {
     const [terms, setTerms] = useState<string[]>([]);
     const [conceptMap, setConceptMap] = useState<ConceptMapNode | null>(null);
     const [overview, setOverview] = useState("");
+    const wakeLockRef = useRef<any>(null);
+
+    // Feature 3: Screen Wake Lock
+    useEffect(() => {
+        const requestWakeLock = async () => {
+            if ('wakeLock' in navigator) {
+                try {
+                    // @ts-ignore
+                    wakeLockRef.current = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock active');
+                } catch (err) {
+                    console.log('Wake Lock failed', err);
+                }
+            }
+        };
+        requestWakeLock();
+        
+        return () => {
+            if (wakeLockRef.current) wakeLockRef.current.release();
+        };
+    }, []);
 
     // Load Data
     useEffect(() => {
@@ -1084,6 +1196,15 @@ const StudyDetail = () => {
             navigate('/library');
         }
     }, [id, navigate]);
+    
+    // Feature 9: Web Speech API (TTS)
+    const speakSummary = () => {
+        if (!material?.content) return;
+        // Strip HTML tags for speech
+        const text = material.content.replace(/<[^>]*>/g, '');
+        const utterance = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(utterance);
+    };
 
     if (!material) return null;
 
@@ -1112,19 +1233,27 @@ const StudyDetail = () => {
 
                         {/* Summary Content - Enhanced Formatting */}
                         {material.content ? (
-                            <div className="prose prose-invert prose-lg max-w-none 
-                                prose-headings:font-bold prose-headings:text-white prose-headings:tracking-tight
-                                prose-h1:text-4xl prose-h1:mb-6
-                                prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:border-zinc-800 prose-h2:pb-2
-                                prose-h3:text-xl prose-h3:text-blue-200 prose-h3:mt-8
-                                prose-p:text-zinc-300 prose-p:leading-relaxed prose-p:mb-6
-                                prose-strong:text-white prose-strong:font-extrabold
-                                prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-2
-                                prose-li:text-zinc-300 prose-li:marker:text-blue-500
-                                prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-zinc-400
-                            " 
-                                 dangerouslySetInnerHTML={{ __html: material.content }} 
-                            />
+                            <div className="relative">
+                                <button 
+                                    onClick={speakSummary}
+                                    className="absolute -top-12 right-0 p-2 text-zinc-400 hover:text-white flex items-center gap-2 text-sm"
+                                >
+                                    <Volume2 size={16} /> Read Aloud
+                                </button>
+                                <div className="prose prose-invert prose-lg max-w-none 
+                                    prose-headings:font-bold prose-headings:text-white prose-headings:tracking-tight
+                                    prose-h1:text-4xl prose-h1:mb-6
+                                    prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:border-zinc-800 prose-h2:pb-2
+                                    prose-h3:text-xl prose-h3:text-blue-200 prose-h3:mt-8
+                                    prose-p:text-zinc-300 prose-p:leading-relaxed prose-p:mb-6
+                                    prose-strong:text-white prose-strong:font-extrabold
+                                    prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-2
+                                    prose-li:text-zinc-300 prose-li:marker:text-blue-500
+                                    prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-zinc-400
+                                " 
+                                     dangerouslySetInnerHTML={{ __html: material.content }} 
+                                />
+                            </div>
                         ) : (
                             <div className="text-center py-10 text-zinc-500">
                                 No summary generated.
@@ -1335,7 +1464,53 @@ const FAQSection = () => {
 // --- Landing Page ---
 const LandingPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [prompt, setPrompt] = useState('');
+  
+  // Feature 4: Protocol Handlers
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    if (action) {
+        // Handle web+study://action urls
+        if (action.startsWith('quiz/')) {
+            // E.g. web+study://quiz/123 -> ?action=quiz/123
+            const quizId = action.split('/')[1];
+            navigate(`/study/${quizId}`);
+        }
+    }
+  }, []);
+
+  // Feature 2: File Handling API
+  useEffect(() => {
+    if ('launchQueue' in window && window.launchQueue) {
+        window.launchQueue.setConsumer(async (launchParams: any) => {
+            if (!launchParams.files.length) return;
+            for (const handle of launchParams.files) {
+                const file = await handle.getFile();
+                const text = await file.text();
+                setPrompt(text);
+            }
+        });
+    }
+  }, []);
+  
+  // Handle Share Target Params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedTitle = params.get('title');
+    const sharedText = params.get('text');
+    const sharedUrl = params.get('url');
+
+    if (sharedTitle || sharedText || sharedUrl) {
+      const content = [sharedTitle, sharedText, sharedUrl].filter(Boolean).join('\n\n');
+      if (content) {
+        setPrompt(content);
+        // Clean URL to prevent re-processing on refresh
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
   
   // Context & Uploads
   const [contextText, setContextText] = useState<string>('');
@@ -1396,6 +1571,24 @@ const LandingPage = () => {
     } else {
         reader.readAsText(file);
     }
+  };
+  
+  // Feature 9: Web Speech API (STT)
+  const handleVoiceInput = () => {
+      // @ts-ignore
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = false;
+          recognition.interimResults = false;
+          recognition.start();
+          recognition.onresult = (event: any) => {
+              const transcript = event.results[0][0].transcript;
+              setPrompt(prev => prev ? prev + ' ' + transcript : transcript);
+          };
+      } else {
+          alert("Speech recognition not supported in this browser.");
+      }
   };
   
   // Function to highlight URLs in the backdrop
@@ -1577,7 +1770,10 @@ const LandingPage = () => {
             
              {/* Right Tools */}
             <div className="flex items-center gap-3">
-               <button className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
+               <button 
+                 onClick={handleVoiceInput}
+                 className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+               >
                   <Mic size={22} strokeWidth={1.5} />
                </button>
 
@@ -1641,6 +1837,8 @@ const App = () => {
     setShowSnow(settings.showSnow);
     // Sync widget data on mount
     syncWidgetData();
+    // Register Periodic Sync
+    registerPeriodicSync();
   }, []);
 
   const handleToggleSnow = (enabled: boolean) => {
