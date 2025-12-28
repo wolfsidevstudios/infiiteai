@@ -69,7 +69,9 @@ import {
   ChevronDown,
   HelpCircle,
   MessageSquare,
-  ChevronLeft
+  ChevronLeft,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 
 import { StudyMaterial, Flashcard, QuizQuestion, StudyPlan, ConceptMapNode, Task, StudyLocation, SearchResult } from './types';
@@ -93,7 +95,9 @@ import {
   saveLocations,
   getLocations,
   saveKeyTerms,
-  getKeyTerms
+  getKeyTerms,
+  getAppSettings,
+  saveAppSettings
 } from './services/storageService';
 import { generateSummary, generateFlashcards, generateQuiz, generateShortOverview, generateConceptMap, generateLocationData, performWebSearch, generateStructuredNotes, generateKeyTerms, setApiKey, getApiKey } from './services/geminiService';
 import FlashcardDeck from './components/FlashcardDeck';
@@ -134,35 +138,37 @@ const LiquidGlass: React.FC<LiquidGlassProps> = ({ children, className = "", inn
 // --- Snow Effect Component ---
 const SnowOverlay = () => {
     // Generate flakes with random properties
-    const flakes = Array.from({ length: 50 }).map((_, i) => ({
+    const flakes = Array.from({ length: 40 }).map((_, i) => ({
         id: i,
         left: Math.random() * 100,
-        duration: Math.random() * 3 + 2, // 2-5s
+        duration: Math.random() * 8 + 4, // 4-12s - slower for a "custom" premium feel
         delay: Math.random() * 5,
-        size: Math.random() * 10 + 10 // 10-20px
+        size: Math.random() * 4 + 2, // 2-6px - smaller, cleaner
+        opacity: Math.random() * 0.4 + 0.1
     }));
 
     return (
-        <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden font-sans">
+        <div className="fixed inset-0 pointer-events-none z-[50] overflow-hidden font-sans">
             {flakes.map((flake) => (
                 <div 
                     key={flake.id}
-                    className="absolute text-blue-200/60 animate-snowfall"
+                    className="absolute bg-white rounded-full animate-snowfall"
                     style={{
                         left: `${flake.left}vw`,
                         animationDuration: `${flake.duration}s`,
                         animationDelay: `${flake.delay}s`,
-                        fontSize: `${flake.size}px`,
+                        width: `${flake.size}px`,
+                        height: `${flake.size}px`,
+                        opacity: flake.opacity,
                         top: '-20px'
                     }}
-                >
-                    ❄
-                </div>
+                />
             ))}
             <style>{`
                 @keyframes snowfall {
-                    0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0.8; }
-                    100% { transform: translateY(110vh) translateX(20px) rotate(180deg); opacity: 0.2; }
+                    0% { transform: translateY(-10vh) translateX(0); opacity: 0; }
+                    20% { opacity: 0.5; }
+                    100% { transform: translateY(110vh) translateX(50px); opacity: 0; }
                 }
                 .animate-snowfall {
                     animation-name: snowfall;
@@ -210,8 +216,15 @@ const MapSlide = ({ locations }: { locations: StudyLocation[] }) => {
     );
 };
 
-// --- Settings Modal (Extracted) ---
-const SettingsModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+// --- Settings Modal ---
+interface SettingsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    showSnow: boolean;
+    onToggleSnow: (val: boolean) => void;
+}
+
+const SettingsModal = ({ isOpen, onClose, showSnow, onToggleSnow }: SettingsModalProps) => {
     const [apiKeyInput, setApiKeyInput] = useState('');
 
     useEffect(() => {
@@ -239,32 +252,54 @@ const SettingsModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
                 
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 bg-white text-black rounded-xl">
-                        <Key size={24} />
+                        <Settings size={24} />
                     </div>
-                    <h2 className="text-2xl font-bold text-white">API Settings</h2>
+                    <h2 className="text-2xl font-bold text-white">Settings</h2>
                 </div>
 
-                <p className="text-zinc-400 mb-6 text-sm leading-relaxed">
-                    Enter your Google Gemini API key to enable AI features. The key is stored locally in your browser.
-                </p>
-
-                <div className="space-y-4">
+                <div className="space-y-6">
+                    {/* Visual Preferences */}
                     <div>
-                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">API Key</label>
-                        <input 
-                            type="password" 
-                            value={apiKeyInput}
-                            onChange={(e) => setApiKeyInput(e.target.value)}
-                            placeholder="sk-..."
-                            className="w-full p-4 bg-black rounded-xl border border-zinc-800 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-zinc-600 font-mono text-sm text-white placeholder-zinc-700"
-                        />
+                        <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Appearance</h3>
+                        <div className="flex items-center justify-between p-4 bg-black rounded-xl border border-zinc-800">
+                             <div className="flex items-center gap-3">
+                                 <Snowflake size={20} className={showSnow ? 'text-blue-400' : 'text-zinc-600'} />
+                                 <div>
+                                     <p className="text-white font-medium text-sm">Snow Effect</p>
+                                     <p className="text-xs text-zinc-500">Show falling snow particles</p>
+                                 </div>
+                             </div>
+                             <button 
+                                onClick={() => onToggleSnow(!showSnow)}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${showSnow ? 'bg-blue-600' : 'bg-zinc-700'}`}
+                             >
+                                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${showSnow ? 'left-7' : 'left-1'}`} />
+                             </button>
+                        </div>
+                    </div>
+
+                    {/* API Settings */}
+                    <div>
+                        <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">API Configuration</h3>
+                        <div className="p-4 bg-black rounded-xl border border-zinc-800 space-y-3">
+                            <p className="text-zinc-400 text-xs leading-relaxed">
+                                Enter your Google Gemini API key to enable AI features. Stored locally.
+                            </p>
+                            <input 
+                                type="password" 
+                                value={apiKeyInput}
+                                onChange={(e) => setApiKeyInput(e.target.value)}
+                                placeholder="sk-..."
+                                className="w-full p-3 bg-zinc-900 rounded-lg border border-zinc-800 focus:outline-none focus:border-white/30 font-mono text-xs text-white placeholder-zinc-700"
+                            />
+                        </div>
                     </div>
                     
                     <button 
                         onClick={handleSave}
                         className="w-full py-4 bg-white text-black rounded-xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform"
                     >
-                        <Save size={18} /> Save Configuration
+                        <Save size={18} /> Save Changes
                     </button>
                 </div>
             </div>
@@ -687,52 +722,99 @@ const ConfigurePage = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState(location.state?.title || "New Study Set");
   
+  // State for selections
+  const [options, setOptions] = useState({
+      summary: true,
+      flashcards: true,
+      quiz: true,
+      map: true,
+      terms: true,
+      locations: true
+  });
+  
   if (!location.state) return <Navigate to="/" />;
+
+  const toggleOption = (key: keyof typeof options) => {
+      setOptions(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const handleStart = () => {
       navigate('/generating', {
-          state: { ...location.state, title }
+          state: { ...location.state, title, options }
       });
   };
 
+  const OptionCard = ({ label, icon: Icon, id }: { label: string, icon: any, id: keyof typeof options }) => (
+      <button 
+          onClick={() => toggleOption(id)}
+          className={`
+              relative p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center justify-center gap-3 h-32
+              ${options[id] 
+                  ? 'bg-white text-black border-white shadow-xl shadow-white/10 scale-105 z-10' 
+                  : 'bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 hover:scale-[1.02]'
+              }
+          `}
+      >
+          {options[id] && (
+              <div className="absolute top-3 right-3 text-black">
+                  <CheckCircle2 size={18} className="fill-green-400 text-black" />
+              </div>
+          )}
+          <Icon size={28} strokeWidth={1.5} />
+          <span className="font-bold text-xs uppercase tracking-wide">{label}</span>
+      </button>
+  );
+
   return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
-          <div className="w-full max-w-md bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
-              <h2 className="text-2xl font-bold text-white mb-6">Setup your Study Kit</h2>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative">
+          {/* Background blobs for "floating" feel */}
+          <div className="absolute top-20 left-10 w-64 h-64 bg-blue-900/20 rounded-full blur-[100px] pointer-events-none"></div>
+          <div className="absolute bottom-20 right-10 w-64 h-64 bg-purple-900/20 rounded-full blur-[100px] pointer-events-none"></div>
+
+          <div className="w-full max-w-2xl bg-zinc-950/80 backdrop-blur-xl rounded-[2rem] p-8 border border-zinc-800 shadow-2xl relative z-10">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-white mb-2">Configure Kit</h2>
+                <p className="text-zinc-500">Customize what AI generates for you</p>
+              </div>
               
-              <div className="space-y-6">
+              <div className="space-y-8">
                   <div>
-                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Title</label>
+                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3 block ml-1">Study Set Title</label>
                       <input 
                           type="text" 
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
-                          className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:border-white/50 transition-colors"
+                          className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 text-white focus:outline-none focus:border-white/30 focus:bg-zinc-900 transition-all text-center font-medium placeholder-zinc-700"
+                          placeholder="e.g. Introduction to Biology"
                       />
                   </div>
 
-                  <div className="bg-zinc-950/50 rounded-xl p-4 border border-zinc-800">
-                      <div className="flex items-center gap-3 mb-2">
-                          <Brain size={20} className="text-purple-400" />
-                          <span className="text-sm font-medium text-zinc-300">AI Will Generate:</span>
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-4 block ml-1 text-center">Select Modules</label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <OptionCard id="summary" label="Summary" icon={FileText} />
+                          <OptionCard id="flashcards" label="Flashcards" icon={Layers} />
+                          <OptionCard id="quiz" label="Quiz" icon={Brain} />
+                          <OptionCard id="map" label="Concept Map" icon={Network} />
+                          <OptionCard id="terms" label="Key Terms" icon={BookA} />
+                          <OptionCard id="locations" label="Locations" icon={MapPin} />
                       </div>
-                      <ul className="text-sm text-zinc-500 space-y-2 ml-8 list-disc">
-                          <li>Comprehensive Summary</li>
-                          <li>Flashcards & Quiz</li>
-                          <li>Concept Map</li>
-                          <li>Key Terms Dictionary</li>
-                          <li>Related Locations (if applicable)</li>
-                      </ul>
                   </div>
 
-                  <button 
-                      onClick={handleStart}
-                      className="w-full py-4 bg-white text-black rounded-xl font-bold text-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
-                  >
-                      <Sparkles size={20} /> Generate Kit
-                  </button>
-                  
-                  <button onClick={() => navigate('/')} className="w-full text-zinc-500 hover:text-white text-sm">Cancel</button>
+                  <div className="flex gap-3 pt-4">
+                    <button 
+                        onClick={() => navigate('/')} 
+                        className="px-6 py-4 rounded-xl text-zinc-500 font-bold hover:text-white hover:bg-zinc-900 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleStart}
+                        className="flex-1 py-4 bg-white text-black rounded-xl font-bold text-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-white/20"
+                    >
+                        <Sparkles size={20} className="text-amber-500" /> Generate
+                    </button>
+                  </div>
               </div>
           </div>
       </div>
@@ -747,20 +829,23 @@ const LoadingScreen = () => {
 
     useEffect(() => {
         const process = async () => {
-            const { content, title, context, images, selectedSubject } = location.state;
+            const { content, title, context, images, selectedSubject, options } = location.state;
             
+            // Default options for backward compatibility
+            const opts = options || { summary: true, flashcards: true, quiz: true, map: true, terms: true, locations: true };
+
             try {
                 // Parallel generation for speed
                 setStatus("Reading and understanding content...");
                 
-                // We create promises for independent tasks
-                const summaryPromise = generateSummary(content, context, images);
-                const cardsPromise = generateFlashcards(content, context, images);
-                const quizPromise = generateQuiz(content, context, images);
-                const mapPromise = generateConceptMap(content, context, images);
-                const locPromise = generateLocationData(content, context, images);
-                const termsPromise = generateKeyTerms(content, context, images);
-                const overviewPromise = generateShortOverview(content, context, images);
+                // Conditionally create promises
+                const summaryPromise = opts.summary ? generateSummary(content, context, images) : Promise.resolve("");
+                const overviewPromise = opts.summary ? generateShortOverview(content, context, images) : Promise.resolve("");
+                const cardsPromise = opts.flashcards ? generateFlashcards(content, context, images) : Promise.resolve([]);
+                const quizPromise = opts.quiz ? generateQuiz(content, context, images) : Promise.resolve([]);
+                const mapPromise = opts.map ? generateConceptMap(content, context, images) : Promise.resolve(null);
+                const locPromise = opts.locations ? generateLocationData(content, context, images) : Promise.resolve([]);
+                const termsPromise = opts.terms ? generateKeyTerms(content, context, images) : Promise.resolve([]);
                 
                 setStatus("Synthesizing Study Materials...");
                 
@@ -782,13 +867,13 @@ const LoadingScreen = () => {
                 };
 
                 saveMaterial(newMaterial);
-                saveFlashcards(newMaterial.id, cards);
-                localStorage.setItem(`sb_quiz_${newMaterial.id}`, JSON.stringify(quiz));
                 
-                saveConceptMap(newMaterial.id, map);
-                saveLocations(newMaterial.id, locations);
-                saveKeyTerms(newMaterial.id, terms);
-                saveOverview(newMaterial.id, overview);
+                if (opts.flashcards) saveFlashcards(newMaterial.id, cards);
+                if (opts.quiz) localStorage.setItem(`sb_quiz_${newMaterial.id}`, JSON.stringify(quiz));
+                if (opts.map && map) saveConceptMap(newMaterial.id, map);
+                if (opts.locations) saveLocations(newMaterial.id, locations);
+                if (opts.terms) saveKeyTerms(newMaterial.id, terms);
+                if (opts.summary) saveOverview(newMaterial.id, overview);
 
                 navigate(`/study/${newMaterial.id}`);
 
@@ -932,34 +1017,57 @@ const StudyDetail = () => {
     if (!material) return null;
 
     // Define Views for Carousel
+    // Always include Overview/Dashboard
     const slides = [
         {
             id: 'dashboard',
             label: 'Overview',
             icon: Layout,
             component: (
-                <div className="h-full overflow-y-auto p-6 md:p-10 scrollbar-hide">
-                    <div className="max-w-4xl mx-auto space-y-8 pb-20">
-                        {/* Overview Hero */}
-                        <div className="p-8 rounded-3xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 shadow-xl relative overflow-hidden">
-                            <div className="relative z-10">
-                                <h3 className="text-zinc-400 uppercase tracking-widest text-xs font-bold mb-2">Overview</h3>
+                <div className="h-full overflow-y-auto p-6 md:p-12 scrollbar-hide">
+                    <div className="max-w-4xl mx-auto space-y-12 pb-20">
+                        {/* Overview Hero - Clean Design */}
+                        <div className="p-8 md:p-10 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-xl relative overflow-hidden group">
+                            <div className="relative z-10 flex flex-col gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-1 h-8 bg-blue-500 rounded-full"></div>
+                                    <h3 className="text-zinc-400 uppercase tracking-widest text-xs font-bold">Quick Summary</h3>
+                                </div>
                                 <p className="text-xl md:text-2xl font-medium leading-relaxed text-white">
-                                    {overview}
+                                    {overview || "No overview available."}
                                 </p>
                             </div>
-                            <Sparkles className="absolute top-4 right-4 text-white/5 w-32 h-32" />
                         </div>
 
-                        {/* Summary Content */}
-                        <div className="prose prose-invert prose-lg max-w-none prose-headings:font-bold prose-h3:text-white/90 prose-p:text-zinc-400 prose-li:text-zinc-400 prose-strong:text-white" 
-                             dangerouslySetInnerHTML={{ __html: material.content }} 
-                        />
+                        {/* Summary Content - Enhanced Formatting */}
+                        {material.content ? (
+                            <div className="prose prose-invert prose-lg max-w-none 
+                                prose-headings:font-bold prose-headings:text-white prose-headings:tracking-tight
+                                prose-h1:text-4xl prose-h1:mb-6
+                                prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:border-zinc-800 prose-h2:pb-2
+                                prose-h3:text-xl prose-h3:text-blue-200 prose-h3:mt-8
+                                prose-p:text-zinc-300 prose-p:leading-relaxed prose-p:mb-6
+                                prose-strong:text-white prose-strong:font-extrabold
+                                prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-2
+                                prose-li:text-zinc-300 prose-li:marker:text-blue-500
+                                prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-zinc-400
+                            " 
+                                 dangerouslySetInnerHTML={{ __html: material.content }} 
+                            />
+                        ) : (
+                            <div className="text-center py-10 text-zinc-500">
+                                No summary generated.
+                            </div>
+                        )}
                     </div>
                 </div>
             )
-        },
-        {
+        }
+    ];
+    
+    // Conditionally add other slides
+    if (flashcards.length > 0) {
+        slides.push({
             id: 'flashcards',
             label: 'Flashcards',
             icon: Layers,
@@ -972,32 +1080,28 @@ const StudyDetail = () => {
                     }} />
                 </div>
             )
-        },
-        {
+        });
+    }
+
+    if (quizQuestions.length > 0) {
+        slides.push({
             id: 'quiz',
             label: 'Quiz',
             icon: Brain,
             component: (
                 <div className="h-full flex flex-col p-6 md:p-10 overflow-y-auto pb-20">
-                    {quizQuestions.length > 0 ? (
-                        <QuizRunner 
-                            questions={quizQuestions} 
-                            materialId={material.id} 
-                            onComplete={() => {
-                                alert("Quiz recorded!");
-                                setCurrentIndex(0); // Go back to dashboard
-                            }} 
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-zinc-500">
-                            <Brain size={48} className="mb-4" />
-                            <p>No quiz generated for this set.</p>
-                        </div>
-                    )}
+                    <QuizRunner 
+                        questions={quizQuestions} 
+                        materialId={material.id} 
+                        onComplete={() => {
+                            alert("Quiz recorded!");
+                            setCurrentIndex(0); // Go back to dashboard
+                        }} 
+                    />
                 </div>
             )
-        }
-    ];
+        });
+    }
 
     if (locations.length > 0) {
         slides.push({
@@ -1021,6 +1125,11 @@ const StudyDetail = () => {
         });
     }
 
+    // Handle index bounds when slides change
+    if (currentIndex >= slides.length) {
+        setCurrentIndex(0);
+    }
+
     const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % slides.length);
     const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
 
@@ -1041,10 +1150,12 @@ const StudyDetail = () => {
                 </div>
                 
                 {/* Slide Title for Mobile/Desktop */}
-                <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-full border border-zinc-800">
-                    {React.createElement(slides[currentIndex].icon, { size: 16, className: "text-zinc-400" })}
-                    <span className="text-sm font-bold text-white">{slides[currentIndex].label}</span>
-                </div>
+                {slides[currentIndex] && (
+                    <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-full border border-zinc-800">
+                        {React.createElement(slides[currentIndex].icon, { size: 16, className: "text-zinc-400" })}
+                        <span className="text-sm font-bold text-white">{slides[currentIndex].label}</span>
+                    </div>
+                )}
             </div>
 
             {/* Carousel Content Area */}
@@ -1052,41 +1163,51 @@ const StudyDetail = () => {
                 
                 {/* The Slide */}
                 <div className="absolute inset-0">
-                    {slides[currentIndex].component}
+                    {slides[currentIndex] ? slides[currentIndex].component : (
+                        <div className="flex items-center justify-center h-full text-zinc-500">
+                            No content available.
+                        </div>
+                    )}
                 </div>
 
                 {/* Navigation Arrows */}
-                <button 
-                    onClick={prevSlide}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-black/40 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm border border-white/5 opacity-0 group-hover:opacity-100 z-30"
-                >
-                    <ChevronLeft size={32} />
-                </button>
-                <button 
-                    onClick={nextSlide}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-black/40 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm border border-white/5 opacity-0 group-hover:opacity-100 z-30"
-                >
-                    <ChevronRight size={32} />
-                </button>
+                {slides.length > 1 && (
+                    <>
+                        <button 
+                            onClick={prevSlide}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-black/40 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm border border-white/5 opacity-0 group-hover:opacity-100 z-30"
+                        >
+                            <ChevronLeft size={32} />
+                        </button>
+                        <button 
+                            onClick={nextSlide}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-black/40 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm border border-white/5 opacity-0 group-hover:opacity-100 z-30"
+                        >
+                            <ChevronRight size={32} />
+                        </button>
+                    </>
+                )}
 
                 {/* Bottom Indicators (Carousel Dots / Tabs) */}
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30 p-2 rounded-full bg-black/60 backdrop-blur-md border border-zinc-800">
-                    {slides.map((slide, idx) => (
-                        <button
-                            key={slide.id}
-                            onClick={() => setCurrentIndex(idx)}
-                            className={`
-                                relative px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5
-                                ${idx === currentIndex 
-                                    ? 'bg-white text-black shadow-lg pl-2 pr-3' 
-                                    : 'text-zinc-400 hover:text-white hover:bg-white/10'}
-                            `}
-                        >
-                            {idx === currentIndex && React.createElement(slide.icon, { size: 12 })}
-                            {idx === currentIndex ? slide.label : <div className="w-1.5 h-1.5 rounded-full bg-current" />}
-                        </button>
-                    ))}
-                </div>
+                {slides.length > 1 && (
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30 p-2 rounded-full bg-black/60 backdrop-blur-md border border-zinc-800">
+                        {slides.map((slide, idx) => (
+                            <button
+                                key={slide.id}
+                                onClick={() => setCurrentIndex(idx)}
+                                className={`
+                                    relative px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5
+                                    ${idx === currentIndex 
+                                        ? 'bg-white text-black shadow-lg pl-2 pr-3' 
+                                        : 'text-zinc-400 hover:text-white hover:bg-white/10'}
+                                `}
+                            >
+                                {idx === currentIndex && React.createElement(slide.icon, { size: 12 })}
+                                {idx === currentIndex ? slide.label : <div className="w-1.5 h-1.5 rounded-full bg-current" />}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -1441,11 +1562,23 @@ const LandingPage = () => {
 
 const App = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showSnow, setShowSnow] = useState(true);
+
+  // Load Settings on Mount
+  useEffect(() => {
+    const settings = getAppSettings();
+    setShowSnow(settings.showSnow);
+  }, []);
+
+  const handleToggleSnow = (enabled: boolean) => {
+    setShowSnow(enabled);
+    saveAppSettings({ showSnow: enabled });
+  };
 
   return (
     <Router>
       <div className="min-h-screen bg-black text-white font-sans selection:bg-white/20">
-        <SnowOverlay />
+        {showSnow && <SnowOverlay />}
         
         <Routes>
            <Route path="/workspace" element={<Workspace onOpenSettings={() => setIsSettingsOpen(true)} />} />
@@ -1469,7 +1602,12 @@ const App = () => {
            } />
         </Routes>
 
-        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+        <SettingsModal 
+            isOpen={isSettingsOpen} 
+            onClose={() => setIsSettingsOpen(false)} 
+            showSnow={showSnow}
+            onToggleSnow={handleToggleSnow}
+        />
       </div>
     </Router>
   );
