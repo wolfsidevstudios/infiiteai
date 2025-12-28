@@ -7,7 +7,8 @@ export interface StudyMaterial {
   subject?: string; // New field for selected subject
   images?: string[]; // Base64 strings
   createdAt: number;
-  type: 'text' | 'file';
+  type: 'text' | 'file' | 'audio-lesson';
+  audioLessonData?: AudioLesson;
 }
 
 export interface Flashcard {
@@ -89,6 +90,23 @@ export interface SearchResult {
     timeline: string[];
     sources: { title: string; uri: string }[];
     fullContent: string;
+}
+
+export interface AudioLessonSegment {
+  id: string;
+  text: string; // The script for this segment
+  audioUrl?: string; // The generated audio blob URL
+  quiz?: QuizQuestion; // Quiz to show after this segment
+  youtubeQuery?: string; // Query to find related video
+  relatedVideo?: any; // YouTube video object
+}
+
+export interface AudioLesson {
+  id: string;
+  title: string;
+  segments: AudioLessonSegment[];
+  finalTest: QuizQuestion[];
+  completed: boolean;
 }
 
 export enum TabView {
