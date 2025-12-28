@@ -77,7 +77,10 @@ import {
   Volume2,
   UserPlus,
   CreditCard,
-  Maximize
+  Maximize,
+  Headphones,
+  ScanLine,
+  Pause
 } from 'lucide-react';
 
 import { StudyMaterial, Flashcard, QuizQuestion, StudyPlan, ConceptMapNode, Task, StudyLocation, SearchResult } from './types';
@@ -107,11 +110,12 @@ import {
   syncWidgetData,
   registerPeriodicSync
 } from './services/storageService';
-import { generateSummary, generateFlashcards, generateQuiz, generateShortOverview, generateConceptMap, generateLocationData, performWebSearch, generateStructuredNotes, generateKeyTerms, setApiKey, getApiKey } from './services/geminiService';
+import { generateSummary, generateFlashcards, generateQuiz, generateShortOverview, generateConceptMap, generateLocationData, performWebSearch, generateStructuredNotes, generateKeyTerms, setApiKey, getApiKey, generateAudioLessonContent } from './services/geminiService';
 import FlashcardDeck from './components/FlashcardDeck';
 import QuizRunner from './components/QuizRunner';
 import DictionarySlide from './components/DictionarySlide';
 import StudyBuddyChat from './components/StudyBuddyChat';
+import AudioLessonPlayer from './components/AudioLessonPlayer';
 
 // Global type for Google GSI and Window features
 declare global {
@@ -124,7 +128,86 @@ declare global {
 const LOGO_URL = "https://iili.io/fVhsBY7.png";
 const GOOGLE_CLIENT_ID = "562922803230-1co4tjg47qh3kfcmd2djjl7d8so9rtro.apps.googleusercontent.com";
 
-// --- Shared Liquid Glass Component ---
+// --- CUSTOM ICONS ---
+
+const GeminiIcon = () => (
+  <svg viewBox="0 0 65 65" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <mask id="maskme" style={{maskType:"alpha"}} maskUnits="userSpaceOnUse" x="0" y="0" width="65" height="65">
+      <path d="M32.447 0c.68 0 1.273.465 1.439 1.125a38.904 38.904 0 001.999 5.905c2.152 5 5.105 9.376 8.854 13.125 3.751 3.75 8.126 6.703 13.125 8.855a38.98 38.98 0 005.906 1.999c.66.166 1.124.758 1.124 1.438 0 .68-.464 1.273-1.125 1.439a38.902 38.902 0 00-5.905 1.999c-5 2.152-9.375 5.105-13.125 8.854-3.749 3.751-6.702 8.126-8.854 13.125a38.973 38.973 0 00-2 5.906 1.485 1.485 0 01-1.438 1.124c-.68 0-1.272-.464-1.438-1.125a38.913 38.913 0 00-2-5.905c-2.151-5-5.103-9.375-8.854-13.125-3.75-3.749-8.125-6.702-13.125-8.854a38.973 38.973 0 00-5.905-2A1.485 1.485 0 010 32.448c0-.68.465-1.272 1.125-1.438a38.903 38.903 0 005.905-2c5-2.151 9.376-5.104 13.125-8.854 3.75-3.749 6.703-8.125 8.855-13.125a38.972 38.972 0 001.999-5.905A1.485 1.485 0 0132.447 0z" fill="#000"/>
+      <path d="M32.447 0c.68 0 1.273.465 1.439 1.125a38.904 38.904 0 001.999 5.905c2.152 5 5.105 9.376 8.854 13.125 3.751 3.75 8.126 6.703 13.125 8.855a38.98 38.98 0 005.906 1.999c.66.166 1.124.758 1.124 1.438 0 .68-.464 1.273-1.125 1.439a38.902 38.902 0 00-5.905 1.999c-5 2.152-9.375 5.105-13.125 8.854-3.749 3.751-6.702 8.126-8.854 13.125a38.973 38.973 0 00-2 5.906 1.485 1.485 0 01-1.438 1.124c-.68 0-1.272-.464-1.438-1.125a38.913 38.913 0 00-2-5.905c-2.151-5-5.103-9.375-8.854-13.125-3.75-3.749-8.125-6.702-13.125-8.854a38.973 38.973 0 00-5.905-2A1.485 1.485 0 010 32.448c0-.68.465-1.272 1.125-1.438a38.903 38.903 0 005.905-2c5-2.151 9.376-5.104 13.125-8.854 3.75-3.749 6.703-8.125 8.855-13.125a38.972 38.972 0 001.999-5.905A1.485 1.485 0 0132.447 0z" fill="url(#prefix__paint0_linear_2001_67)"/>
+    </mask>
+    <g mask="url(#maskme)">
+      <g filter="url(#prefix__filter0_f_2001_67)"><path d="M-5.859 50.734c7.498 2.663 16.116-2.33 19.249-11.152 3.133-8.821-.406-18.131-7.904-20.794-7.498-2.663-16.116 2.33-19.25 11.151-3.132 8.822.407 18.132 7.905 20.795z" fill="#FFE432"/></g>
+      <g filter="url(#prefix__filter1_f_2001_67)"><path d="M27.433 21.649c10.3 0 18.651-8.535 18.651-19.062 0-10.528-8.35-19.062-18.651-19.062S8.78-7.94 8.78 2.587c0 10.527 8.35 19.062 18.652 19.062z" fill="#FC413D"/></g>
+      <g filter="url(#prefix__filter2_f_2001_67)"><path d="M20.184 82.608c10.753-.525 18.918-12.244 18.237-26.174-.68-13.93-9.95-24.797-20.703-24.271C6.965 32.689-1.2 44.407-.519 58.337c.681 13.93 9.95 24.797 20.703 24.271z" fill="#00B95C"/></g>
+      <g filter="url(#prefix__filter3_f_2001_67)"><path d="M20.184 82.608c10.753-.525 18.918-12.244 18.237-26.174-.68-13.93-9.95-24.797-20.703-24.271C6.965 32.689-1.2 44.407-.519 58.337c.681 13.93 9.95 24.797 20.703 24.271z" fill="#00B95C"/></g>
+      <g filter="url(#prefix__filter4_f_2001_67)"><path d="M30.954 74.181c9.014-5.485 11.427-17.976 5.389-27.9-6.038-9.925-18.241-13.524-27.256-8.04-9.015 5.486-11.428 17.977-5.39 27.902 6.04 9.924 18.242 13.523 27.257 8.038z" fill="#00B95C"/></g>
+      <g filter="url(#prefix__filter5_f_2001_67)"><path d="M67.391 42.993c10.132 0 18.346-7.91 18.346-17.666 0-9.757-8.214-17.667-18.346-17.667s-18.346 7.91-18.346 17.667c0 9.757 8.214 17.666 18.346 17.666z" fill="#3186FF"/></g>
+      <g filter="url(#prefix__filter6_f_2001_67)"><path d="M-13.065 40.944c9.33 7.094 22.959 4.869 30.442-4.972 7.483-9.84 5.987-23.569-3.343-30.663C4.704-1.786-8.924.439-16.408 10.28c-7.483 9.84-5.986 23.57 3.343 30.664z" fill="#FBBC04"/></g>
+      <g filter="url(#prefix__filter7_f_2001_67)"><path d="M34.74 51.43c11.135 7.656 25.896 5.524 32.968-4.764 7.073-10.287 3.779-24.832-7.357-32.488C49.215 6.52 34.455 8.654 27.382 18.94c-7.072 10.288-3.779 24.833 7.357 32.49z" fill="#3186FF"/></g>
+      <g filter="url(#prefix__filter8_f_2001_67)"><path d="M54.984-2.336c2.833 3.852-.808 11.34-8.131 16.727-7.324 5.387-15.557 6.631-18.39 2.78-2.833-3.853.807-11.342 8.13-16.728 7.324-5.387 15.558-6.631 18.39-2.78z" fill="#749BFF"/></g>
+      <g filter="url(#prefix__filter9_f_2001_67)"><path d="M31.727 16.104C43.053 5.598 46.94-8.626 40.41-15.666c-6.53-7.04-21.006-4.232-32.332 6.274s-15.214 24.73-8.683 31.77c6.53 7.04 21.006 4.232 32.332-6.274z" fill="#FC413D"/></g>
+      <g filter="url(#prefix__filter10_f_2001_67)"><path d="M8.51 53.838c6.732 4.818 14.46 5.55 17.262 1.636 2.802-3.915-.384-10.994-7.116-15.812-6.731-4.818-14.46-5.55-17.261-1.636-2.802 3.915.383 10.994 7.115 15.812z" fill="#FFEE48"/></g>
+    </g>
+    <defs>
+      <filter id="prefix__filter0_f_2001_67" x="-19.824" y="13.152" width="39.274" height="43.217" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="2.46" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter1_f_2001_67" x="-15.001" y="-40.257" width="84.868" height="85.688" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="11.891" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter2_f_2001_67" x="-20.776" y="11.927" width="79.454" height="90.916" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="10.109" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter3_f_2001_67" x="-20.776" y="11.927" width="79.454" height="90.916" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="10.109" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter4_f_2001_67" x="-19.845" y="15.459" width="79.731" height="81.505" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="10.109" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter5_f_2001_67" x="29.832" y="-11.552" width="75.117" height="73.758" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="9.606" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter6_f_2001_67" x="-38.583" y="-16.253" width="78.135" height="78.758" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="8.706" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter7_f_2001_67" x="8.107" y="-5.966" width="78.877" height="77.539" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="7.775" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter8_f_2001_67" x="13.587" y="-18.488" width="56.272" height="51.81" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="6.957" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter9_f_2001_67" x="-15.526" y="-31.297" width="70.856" height="69.306" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="5.876" result="effect1_foregroundBlur_2001_67"/></filter>
+      <filter id="prefix__filter10_f_2001_67" x="-14.168" y="20.964" width="55.501" height="51.571" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB"><feFlood floodOpacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="7.273" result="effect1_foregroundBlur_2001_67"/></filter>
+      <linearGradient id="prefix__paint0_linear_2001_67" x1="18.447" y1="43.42" x2="52.153" y2="15.004" gradientUnits="userSpaceOnUse"><stop stopColor="#4893FC"/><stop offset=".27" stopColor="#4893FC"/><stop offset=".777" stopColor="#969DFF"/><stop offset="1" stopColor="#BD99FE"/></linearGradient>
+    </defs>
+  </svg>
+);
+
+const SearchSparkIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="16" width="16">
+    <g id="ai-spark-internet-fill">
+      <path id="Union" fill="currentColor" d="M10.5 5c0.3384 0 0.672 0.02112 1 0.05957V9.2627c-0.1197 -0.25002 -0.2431 -0.48533 -0.3682 -0.70411 -0.2177 -0.38105 -0.4368 -0.70873 -0.6318 -0.97949 -0.195 0.27076 -0.4141 0.59844 -0.63184 0.97949 -0.24157 0.42276 -0.47988 0.90596 -0.68945 1.44141H15v2h-0.6035c0.0649 0.48 0.1035 0.9804 0.1035 1.5s-0.0386 1.02 -0.1035 1.5h2.4277c0.1138 -0.4816 0.1758 -0.9836 0.1758 -1.5 0 -0.3403 -0.0292 -0.6739 -0.0801 -1h2.0196c0.0384 0.3281 0.0605 0.6616 0.0605 1 0 4.6944 -3.8056 8.5 -8.5 8.5C5.80558 22 2 18.1944 2 13.5 2 8.80558 5.80558 5 10.5 5M5.02441 17c0.75338 1.1762 1.87374 2.0939 3.20118 2.5898 -0.03047 -0.0516 -0.06325 -0.1028 -0.09375 -0.1562 -0.38542 -0.6745 -0.77364 -1.4933 -1.0752 -2.4336zm8.91899 0c-0.3016 0.9403 -0.6898 1.7591 -1.0752 2.4336 -0.0306 0.0535 -0.0642 0.1044 -0.0948 0.1562 1.3278 -0.4959 2.4487 -1.4134 3.2022 -2.5898zm-4.76469 0c0.20957 0.5354 0.44788 1.0187 0.68945 1.4414 0.21754 0.3808 0.43694 0.7079 0.63184 0.9785 0.1949 -0.2706 0.4143 -0.5977 0.6318 -0.9785 0.2416 -0.4227 0.4799 -0.906 0.6895 -1.4414zm-5.00293 -5C4.06197 12.4816 4 12.9836 4 13.5s0.06197 1.0184 0.17578 1.5h2.42774C6.53859 14.52 6.5 14.0196 6.5 13.5s0.03859 -1.02 0.10352 -1.5zm4.44824 0c-0.07856 0.4767 -0.12402 0.9776 -0.12402 1.5s0.04546 1.0233 0.12402 1.5H12.376c0.0785 -0.4767 0.124 -0.9776 0.124 -1.5s-0.0455 -1.0233 -0.124 -1.5zM19 1.5c0 1.93297 1.567 3.49998 3.5 3.5v2l-0.1748 0.00391c-1.7922 0.08816 -3.2297 1.52481 -3.3203 3.31639L19 10.5h-2c0 -1.87274 -1.4708 -3.4016 -3.3203 -3.49512L13.5 7V5l0.1797 -0.00488C15.5292 4.90158 17 3.37271 17 1.5zM8.22559 7.40918C6.89801 7.90513 5.77785 8.82374 5.02441 10h2.03223c0.30156 -0.94029 0.68978 -1.75911 1.0752 -2.43359 0.03064 -0.05364 0.06314 -0.10533 0.09375 -0.15723" strokeWidth="1"></path>
+    </g>
+  </svg>
+);
+
+const NoteTakerIcon = () => (
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="16" width="16">
+  <g id="ai-spark-generate-text-fill">
+    <path id="Union" fill="currentColor" d="M20 20H4v-2h16zm0 -4H4v-2h16zm-7 -4H4v-2h9zm6 -10.5c0 1.93297 1.567 3.49998 3.5 3.5v2l-0.1748 0.00391c-1.7922 0.08816 -3.2297 1.52481 -3.3203 3.31639L19 10.5h-2c0 -1.87274 -1.4708 -3.4016 -3.3203 -3.49512L13.5 7V5l0.1797 -0.00488C15.5292 4.90158 17 3.37271 17 1.5zM10 8H4V6h6z" strokeWidth="1"></path>
+  </g>
+</svg>
+);
+
+const AudioLessonIcon = () => (
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="16" width="16">
+  <g id="graphic-eq">
+    <path id="Union" fill="currentColor" d="M12 2c0.5523 0 1 0.44772 1 1v18c0 0.5523 -0.4477 1 -1 1s-1 -0.4477 -1 -1V3c0 -0.55228 0.4477 -1 1 -1M7.5 6c0.55228 0 1 0.44772 1 1v10c0 0.5523 -0.44772 1 -1 1s-1 -0.4477 -1 -1V7c0 -0.55228 0.44772 -1 1 -1m9 0c0.5523 0 1 0.44772 1 1v10c0 0.5523 -0.4477 1 -1 1s-1 -0.4477 -1 -1V7c0 -0.55228 0.4477 -1 1 -1M3 10c0.55228 0 1 0.4477 1 1v2c0 0.5523 -0.44772 1 -1 1s-1 -0.4477 -1 -1v-2c0 -0.5523 0.44772 -1 1 -1m18 0c0.5523 0 1 0.4477 1 1v2c0 0.5523 -0.4477 1 -1 1s-1 -0.4477 -1 -1v-2c0 -0.5523 0.4477 -1 1 -1" strokeWidth="1"></path>
+  </g>
+</svg>
+);
+
+const StudyKitIcon = () => (
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14" height="16" width="16">
+  <g id="Free Remix/Interface Essential/open-book--content-books-book-open">
+    <path id="Union" fill="currentColor" fillRule="evenodd" d="M1.91733 1.68385c-0.07203 -0.0094 -0.13605 0.01261 -0.19075 0.06513 -0.05829 0.05597 -0.10158 0.14496 -0.10158 0.251v7c0 0.18875 0.16581 0.40678 0.45401 0.44437 1.81061 0.23618 3.16656 1.03355 4.06545 1.76635 0.0804 0.0656 0.15725 0.1307 0.23054 0.1949V4.20572c-0.04145 -0.05292 -0.09499 -0.1188 -0.16058 -0.19473 -0.18888 -0.21865 -0.47575 -0.51834 -0.85979 -0.83141 -0.76839 -0.62641 -1.91336 -1.29694 -3.4373 -1.49573ZM7.625 4.20572v7.19988c0.07329 -0.0642 0.15014 -0.1293 0.23054 -0.1949 0.89889 -0.7328 2.25486 -1.53017 4.06546 -1.76635 0.2882 -0.03759 0.454 -0.25562 0.454 -0.44437v-7c0 -0.10604 -0.0433 -0.19503 -0.1016 -0.251 -0.0547 -0.05252 -0.1187 -0.07453 -0.1907 -0.06513 -1.524 0.19879 -2.66894 0.86932 -3.43733 1.49573 -0.38404 0.31307 -0.67091 0.61276 -0.85979 0.83141 -0.06559 0.07593 -0.11913 0.14181 -0.16058 0.19473ZM7.51441 13.355c0.0019 -0.0028 0.00378 -0.0056 0.00564 -0.0084l0.00016 -0.0002 0.00966 -0.0138c0.0096 -0.0136 0.02549 -0.0356 0.04767 -0.0651 0.04439 -0.059 0.11376 -0.1474 0.20804 -0.2565 0.18888 -0.2187 0.47575 -0.5183 0.85979 -0.8314 0.76839 -0.6264 1.91333 -1.297 3.43733 -1.4958 0.8071 -0.1052 1.5423 -0.76799 1.5423 -1.68382v-7c0 -0.87226 -0.7276 -1.682996 -1.704 -1.555632C10.1104 0.68053 8.75443 1.47794 7.85554 2.21073c-0.35402 0.2886 -0.63906 0.56866 -0.85554 0.80351 -0.21648 -0.23485 -0.50152 -0.51491 -0.85554 -0.80351C5.24557 1.47794 3.88962 0.68053 2.07901 0.444348 1.10262 0.316984 0.375 1.12772 0.375 1.99998v7c0 0.91583 0.73523 1.57862 1.54233 1.68382 1.52394 0.1988 2.66891 0.8694 3.4373 1.4958 0.38404 0.3131 0.67091 0.6127 0.85979 0.8314 0.09428 0.1091 0.16365 0.1975 0.20804 0.2565 0.02218 0.0295 0.03807 0.0515 0.04767 0.0651l0.00966 0.0138 0.00016 0.0002c0.00186 0.0028 0.00374 0.0056 0.00564 0.0084 0.03975 0.0576 0.08795 0.1069 0.14208 0.147 0.05407 0.0401 0.11522 0.0719 0.18186 0.0933 0.00311 0.0009 0.00623 0.0019 0.00935 0.0029 0.11529 0.0349 0.241 0.0367 0.36224 0 0.00312 -0.001 0.00624 -0.002 0.00935 -0.0029 0.06664 -0.0214 0.12779 -0.0532 0.18186 -0.0933 0.05413 -0.0401 0.10233 -0.0894 0.14208 -0.147Z" clipRule="evenodd" strokeWidth="1"></path>
+  </g>
+</svg>
+);
+
+const AutoSelectIcon = () => (
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14" height="12" width="12">
+  <g id="Free Remix/Artificial Intelligence/ai-science-spark--atom-scientific-experiment-artificial-intelligence-ai">
+    <path id="Union" fill="currentColor" fillRule="evenodd" d="M11.1759 0.649356c-0.1952 -0.87008 -1.42801 -0.863859 -1.61549 0.007044l-0.02083 0.096752 0.48882 0.105228 -0.48882 -0.105227C9.30975 1.82077 8.46963 2.63397 7.42198 2.81931c-0.89609 0.15852 -0.89608 1.45286 0 1.61139 1.04765 0.18533 1.88777 0.99853 2.1176 2.06615l0.02083 0.09675c0.18748 0.8709 1.42029 0.87713 1.61549 0.00705l0.0253 -0.11276c0.2385 -1.06349 1.0795 -1.87059 2.1253 -2.0556 0.8979 -0.15883 0.8979 -1.45575 0 -1.61458 -1.0458 -0.18501 -1.8868 -0.99211 -2.1253 -2.0556l-0.0253 -0.112754ZM5.4936 3.34813c-0.95772 -0.62057 -1.89778 -1.06247 -2.72285 -1.2489 -0.79703 -0.18009 -1.66172 -0.15503 -2.244181 0.42742 -0.4322824 0.43229 -0.5559912 1.0264 -0.52095711 1.60925C0.0407044 4.71972 0.23639 5.36919 0.539043 6.03503 0.822207 6.65799 1.21169 7.32291 1.69156 8 1.21169 8.6771 0.822208 9.34201 0.539043 9.96497 0.23639 10.6308 0.0407045 11.2803 0.00561194 11.8641c-0.03503424 0.5829 0.08867456 1.177 0.52095706 1.6092l0.441942 -0.4419 -0.441942 0.4419c0.432283 0.4323 1.026401 0.556 1.609251 0.521 0.58382 -0.0351 1.23329 -0.2308 1.89913 -0.5334 0.62296 -0.2832 1.28788 -0.6727 1.96497 -1.1526 0.67708 0.4799 1.34198 0.8694 1.96493 1.1525 0.66584 0.3027 1.31531 0.4984 1.89913 0.5335 0.58282 0.035 1.17692 -0.0887 1.60922 -0.521 0.6058 -0.6058 0.6098 -1.5157 0.4029 -2.3477 -0.2153 -0.8657 -0.7032 -1.8544 -1.3825 -2.85801 -0.1934 -0.28586 -0.582 -0.36076 -0.86786 -0.1673 -0.28587 0.19347 -0.36077 0.58205 -0.1673 0.86791 0.63146 0.93302 1.03696 1.7852 1.20456 2.4591 0.176 0.7077 0.0523 1.0362 -0.0737 1.1621 -0.0887 0.0888 -0.2725 0.1798 -0.65032 0.1571 -0.37684 -0.0226 -0.87077 -0.1572 -1.45687 -0.4236 -0.45052 -0.2048 -0.93694 -0.479 -1.44205 -0.816 0.43327 -0.3609 0.86534 -0.755 1.28855 -1.1782 0.21848 -0.2184 0.42887 -0.43895 0.63069 -0.66044 0.23249 -0.25515 0.21412 -0.65045 -0.04103 -0.88294 -0.25514 -0.23248 -0.65044 -0.21411 -0.88293 0.04103 -0.18873 0.20713 -0.38576 0.41365 -0.59061 0.6185 -0.4787 0.4787 -0.96476 0.91295 -1.44481 1.29785 -0.48007 -0.3849 -0.96613 -0.81917 -1.44485 -1.29789 -0.4787 -0.4787 -0.91298 -0.96475 -1.29782 -1.44481 0.38484 -0.48005 0.81912 -0.96611 1.29782 -1.44481 0.26053 -0.26053 0.52373 -0.50839 0.78746 -0.74262 0.25808 -0.22922 0.28148 -0.62426 0.05226 -0.88234s-0.62426 -0.28148 -0.88234 -0.05226c-0.28228 0.25072 -0.56342 0.5155 -0.84126 0.79334 -0.42322 0.42321 -0.8173 0.85528 -1.17815 1.28856 -0.33708 -0.50513 -0.61125 -0.99156 -0.81604 -1.44209 -0.26641 -0.58611 -0.40099 -1.08003 -0.42364 -1.45688 -0.02271 -0.37781 0.06836 -0.56163 0.15709 -0.65036 0.12039 -0.12039 0.42605 -0.24089 1.0848 -0.09204 0.63071 0.14251 1.43184 0.50406 2.31861 1.07866 0.28968 0.1877 0.67668 0.10503 0.86438 -0.18465 0.1877 -0.28968 0.10504 -0.67668 -0.18464 -0.86438ZM2.49304 9.04014c-0.33708 0.50512 -0.61125 0.99156 -0.81604 1.44206 -0.26641 0.5861 -0.40099 1.0801 -0.42364 1.4569 -0.02271 0.3778 0.06836 0.5616 0.15709 0.6504 0.08874 0.0887 0.27256 0.1798 0.65037 0.1571 0.37684 -0.0227 0.87077 -0.1573 1.45687 -0.4237 0.45054 -0.2048 0.93697 -0.4789 1.44209 -0.816 -0.43329 -0.3609 -0.86537 -0.755 -1.28859 -1.1782 -0.42322 -0.42322 -0.8173 -0.85529 -1.17815 -1.28856ZM4.74992 8c0 -0.69035 0.55964 -1.25 1.25 -1.25 0.69035 0 1.25 0.55965 1.25 1.25 0 0.69036 -0.55965 1.25 -1.25 1.25 -0.69036 0 -1.25 -0.55964 -1.25 -1.25Z" clipRule="evenodd" strokeWidth="1"></path>
+  </g>
+</svg>
+);
+
+// --- SHARED COMPONENTS ---
+
 interface LiquidGlassProps {
     children?: React.ReactNode;
     className?: string;
@@ -142,6 +225,104 @@ const LiquidGlass: React.FC<LiquidGlassProps> = ({ children, className = "", inn
              </div>
         </div>
     </div>
+);
+
+// --- CONSTANTS ---
+
+const MODELS = [
+  { 
+    id: 'gemini-3-pro', 
+    name: 'Pro v3', 
+    fullName: 'Gemini 3 Pro',
+    desc: 'Reasoning expert for complex tasks.', 
+    speed: 4, 
+    intelligence: 5, 
+    cost: 'Moderate',
+    context: '2m tokens',
+    features: ['Web Search', 'MCP', 'Vision']
+  },
+  { 
+    id: 'gemini-3-flash', 
+    name: 'Flash v3', 
+    fullName: 'Gemini 3 Flash',
+    desc: 'High-speed, cost-efficient AI for real-world workflows.', 
+    speed: 5, 
+    intelligence: 4, 
+    cost: 'Low',
+    context: '1m tokens',
+    features: ['Web Search', 'MCP', 'Vision']
+  },
+  { 
+    id: 'gemini-2.5-pro', 
+    name: 'Pro v2.5', 
+    fullName: 'Gemini 2.5 Pro',
+    desc: 'Balanced performance for general tasks.', 
+    speed: 3, 
+    intelligence: 4, 
+    cost: 'Moderate',
+    context: '1m tokens',
+    features: ['Web Search', 'Vision']
+  },
+  { 
+    id: 'gemini-2.5-flash', 
+    name: 'Flash v2.5', 
+    fullName: 'Gemini 2.5 Flash',
+    desc: 'Lightweight and extremely fast.', 
+    speed: 5, 
+    intelligence: 3, 
+    cost: 'Very Low',
+    context: '1m tokens',
+    features: ['Web Search', 'Vision']
+  }
+];
+
+const ModelInfoCard = ({ model, className = "absolute left-full top-0 ml-4" }: { model: typeof MODELS[0], className?: string }) => (
+  <div className={`${className} w-72 bg-white rounded-2xl p-5 shadow-2xl border border-zinc-100 z-[60] text-left animate-fade-in hidden group-hover:block pointer-events-none`}>
+      <h4 className="text-lg font-bold text-black mb-1">{model.fullName}</h4>
+      <p className="text-xs text-zinc-500 mb-4 leading-relaxed">{model.desc}</p>
+      
+      <div className="space-y-3 mb-4">
+          <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400 font-medium">Speed</span>
+              <div className="flex gap-1">
+                  {[1,2,3,4,5].map(i => (
+                      <div key={i} className={`h-1.5 w-6 rounded-full ${i <= model.speed ? 'bg-black' : 'bg-zinc-200'}`}></div>
+                  ))}
+              </div>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400 font-medium">Intelligence</span>
+              <div className="flex gap-1">
+                  {[1,2,3,4,5].map(i => (
+                      <div key={i} className={`h-1.5 w-6 rounded-full ${i <= model.intelligence ? 'bg-black' : 'bg-zinc-200'}`}></div>
+                  ))}
+              </div>
+          </div>
+      </div>
+
+      <div className="flex items-center justify-between mb-4 pb-4 border-b border-zinc-100">
+          <div className="flex items-center gap-2">
+              <span className="text-zinc-400 text-xs">Cost</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${model.cost === 'Low' || model.cost === 'Very Low' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {model.cost}
+              </span>
+          </div>
+          <div className="flex items-center gap-2">
+              <span className="text-zinc-400 text-xs">Context</span>
+              <span className="text-black text-xs font-bold">{model.context}</span>
+          </div>
+      </div>
+
+      <div className="space-y-1">
+          <p className="text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-2">Supports</p>
+          {model.features.map(feat => (
+              <div key={feat} className="flex items-center justify-between text-xs text-black font-medium">
+                  <span>{feat}</span>
+                  <Check size={14} className="text-green-500" />
+              </div>
+          ))}
+      </div>
+  </div>
 );
 
 // --- Snow Effect Component ---
@@ -878,6 +1059,38 @@ const NoteTakerPage = () => {
     );
 };
 
+// --- Audio Lesson Detail Page ---
+const AudioLessonPage = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const [lesson, setLesson] = useState<any>(null);
+
+    useEffect(() => {
+        if(!id) return;
+        const materials = getMaterials();
+        const found = materials.find(m => m.id === id);
+        if (found && found.type === 'audio-lesson' && found.audioLessonData) {
+            setLesson(found.audioLessonData);
+        } else {
+            navigate('/library');
+        }
+    }, [id, navigate]);
+
+    if (!lesson) return null;
+
+    return (
+        <AudioLessonPlayer 
+            lesson={lesson} 
+            onComplete={() => {
+                // Mark complete logic could go here
+                alert("Lesson Marked Complete!");
+                navigate('/library');
+            }}
+            onBack={() => navigate('/library')}
+        />
+    );
+};
+
 // --- Configure Page ---
 const ConfigurePage = () => {
   const location = useLocation();
@@ -991,9 +1204,42 @@ const LoadingScreen = () => {
 
     useEffect(() => {
         const process = async () => {
-            const { content, title, context, images, selectedSubject, options } = location.state;
+            const { content, title, context, images, selectedSubject, options, type } = location.state;
             
-            // Default options for backward compatibility
+            // Handle Audio Lesson Generation
+            if (type === 'audio-lesson') {
+                try {
+                    setStatus("Writing Lesson Script...");
+                    const lessonData = await generateAudioLessonContent(content, context, images);
+                    
+                    if (!lessonData) throw new Error("Failed to generate audio lesson");
+                    
+                    setStatus("Finalizing Lesson...");
+
+                    const newMaterial: StudyMaterial = {
+                        id: lessonData.id,
+                        title: title || "Audio Lesson",
+                        content: "Audio Lesson content.",
+                        context: context,
+                        images: images,
+                        createdAt: Date.now(),
+                        type: 'audio-lesson',
+                        subject: selectedSubject,
+                        audioLessonData: lessonData
+                    };
+
+                    saveMaterial(newMaterial);
+                    navigate(`/audio-lesson/${lessonData.id}`);
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Audio Lesson Generation Failed.");
+                    navigate('/');
+                }
+                return;
+            }
+
+            // Default Study Kit Generation
             const opts = options || { summary: true, flashcards: true, quiz: true, map: true, terms: true, locations: true };
 
             try {
@@ -1104,15 +1350,16 @@ const Library = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {materials.map(m => {
                             const date = new Date(m.createdAt).toLocaleDateString();
+                            const isAudio = m.type === 'audio-lesson';
                             return (
                                 <div 
                                     key={m.id}
-                                    onClick={() => navigate(`/study/${m.id}`)}
+                                    onClick={() => navigate(isAudio ? `/audio-lesson/${m.id}` : `/study/${m.id}`)}
                                     className="group relative bg-zinc-900 rounded-3xl p-6 border border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800/80 transition-all cursor-pointer shadow-lg"
                                 >
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className="p-3 bg-zinc-950 rounded-2xl border border-zinc-800 group-hover:scale-110 transition-transform">
-                                            <BookOpen size={24} className="text-white" />
+                                        <div className={`p-3 rounded-2xl border border-zinc-800 group-hover:scale-110 transition-transform ${isAudio ? 'bg-purple-900/30' : 'bg-zinc-950'}`}>
+                                            {isAudio ? <Headphones size={24} className="text-purple-400" /> : <BookOpen size={24} className="text-white" />}
                                         </div>
                                         <button 
                                             onClick={(e) => handleDelete(e, m.id)}
@@ -1123,7 +1370,9 @@ const Library = () => {
                                     </div>
                                     
                                     <h3 className="text-xl font-bold mb-2 line-clamp-1 text-white group-hover:text-blue-200 transition-colors">{m.title}</h3>
-                                    <p className="text-zinc-500 text-sm mb-4 line-clamp-2">{getOverview(m.id) || "No overview available."}</p>
+                                    <p className="text-zinc-500 text-sm mb-4 line-clamp-2">
+                                        {isAudio ? "Interactive Audio Lesson with Quizzes" : (getOverview(m.id) || "No overview available.")}
+                                    </p>
                                     
                                     <div className="flex items-center justify-between text-xs font-medium text-zinc-500 border-t border-zinc-800 pt-4">
                                         <span>{date}</span>
@@ -1154,6 +1403,10 @@ const StudyDetail = () => {
     const [conceptMap, setConceptMap] = useState<ConceptMapNode | null>(null);
     const [overview, setOverview] = useState("");
     const wakeLockRef = useRef<any>(null);
+    
+    // Feature 9: Web Speech API (TTS) - Play/Pause State
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
 
     // Feature 3: Screen Wake Lock
     useEffect(() => {
@@ -1172,6 +1425,7 @@ const StudyDetail = () => {
         
         return () => {
             if (wakeLockRef.current) wakeLockRef.current.release();
+            window.speechSynthesis.cancel(); // Stop any speech when leaving
         };
     }, []);
 
@@ -1197,13 +1451,37 @@ const StudyDetail = () => {
         }
     }, [id, navigate]);
     
-    // Feature 9: Web Speech API (TTS)
-    const speakSummary = () => {
+    // Feature 9: Web Speech API (TTS) - Toggle Logic
+    const toggleSpeech = () => {
         if (!material?.content) return;
-        // Strip HTML tags for speech
-        const text = material.content.replace(/<[^>]*>/g, '');
-        const utterance = new SpeechSynthesisUtterance(text);
-        window.speechSynthesis.speak(utterance);
+        const synth = window.speechSynthesis;
+
+        if (isSpeaking && !isPaused) {
+            synth.pause();
+            setIsPaused(true);
+        } else if (isPaused) {
+            synth.resume();
+            setIsPaused(false);
+        } else {
+            synth.cancel();
+            // Strip HTML tags for speech
+            const text = material.content.replace(/<[^>]*>/g, '');
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            utterance.onend = () => {
+                setIsSpeaking(false);
+                setIsPaused(false);
+            };
+            
+            utterance.onerror = () => {
+                setIsSpeaking(false);
+                setIsPaused(false);
+            }
+
+            synth.speak(utterance);
+            setIsSpeaking(true);
+            setIsPaused(false);
+        }
     };
 
     if (!material) return null;
@@ -1235,10 +1513,11 @@ const StudyDetail = () => {
                         {material.content ? (
                             <div className="relative">
                                 <button 
-                                    onClick={speakSummary}
+                                    onClick={toggleSpeech}
                                     className="absolute -top-12 right-0 p-2 text-zinc-400 hover:text-white flex items-center gap-2 text-sm"
                                 >
-                                    <Volume2 size={16} /> Read Aloud
+                                    {isSpeaking && !isPaused ? <Pause size={16} /> : <Volume2 size={16} />} 
+                                    {isSpeaking && !isPaused ? "Pause Reading" : (isPaused ? "Resume Reading" : "Read Aloud")}
                                 </button>
                                 <div className="prose prose-invert prose-lg max-w-none 
                                     prose-headings:font-bold prose-headings:text-white prose-headings:tracking-tight
@@ -1413,51 +1692,32 @@ const StudyDetail = () => {
     );
 };
 
+// --- FAQ Section ---
 const FAQSection = () => {
-    const faqs = [
-        { q: "How does it work?", a: "Simply upload your notes (PDF, text) or type a topic. Our AI analyzes the content to create summaries, flashcards, and quizzes instantly." },
-        { q: "Is it free to use?", a: "Infinite Study AI requires your own Google Gemini API key. If you have a key (which has a free tier), the app is free to use." },
-        { q: "Can I upload images?", a: "Yes! You can attach images of diagrams, handwritten notes, or textbook pages, and the AI will include them in its analysis." },
-        { q: "Where is my data stored?", a: "All your study materials and API keys are stored locally in your browser's storage. We don't save your data on our servers." },
-    ];
-
-    const [openIndex, setOpenIndex] = useState<number | null>(null);
-
     return (
-        <div className="bg-black py-32 px-6 border-t border-zinc-900">
-            <div className="max-w-3xl mx-auto">
-                <div className="text-center mb-16">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-full shadow-sm text-sm font-medium text-zinc-300 mb-6 border border-zinc-800">
-                        <HelpCircle size={16} /> FAQ
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 text-white">Common Questions</h2>
-                    <p className="text-xl text-zinc-500">Everything you need to know about the platform.</p>
-                </div>
-
-                <div className="space-y-4">
-                    {faqs.map((faq, i) => (
-                        <div 
-                            key={i} 
-                            className="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer"
-                            onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                        >
-                            <div className="p-6 md:p-8 flex items-center justify-between">
-                                <h3 className="text-lg md:text-xl font-semibold text-white">{faq.q}</h3>
-                                <ChevronDown 
-                                    size={24} 
-                                    className={`text-zinc-500 transition-transform duration-300 ${openIndex === i ? 'rotate-180' : ''}`}
-                                />
-                            </div>
-                            <div 
-                                className={`px-6 md:px-8 text-zinc-400 leading-relaxed overflow-hidden transition-all duration-300 ease-in-out ${openIndex === i ? 'max-h-48 pb-8 opacity-100' : 'max-h-0 opacity-0'}`}
-                            >
-                                {faq.a}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+      <div className="py-20 bg-black border-t border-zinc-900">
+        <div className="max-w-4xl mx-auto px-6">
+          <h2 className="text-2xl font-bold text-center text-white mb-10">Frequently Asked Questions</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
+               <h3 className="font-bold text-white mb-2">How does it work?</h3>
+               <p className="text-zinc-400 text-sm">We use Google's Gemini AI to analyze your study material and generate summaries, quizzes, and flashcards instantly.</p>
             </div>
+            <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
+               <h3 className="font-bold text-white mb-2">Is it free?</h3>
+               <p className="text-zinc-400 text-sm">Yes, Infinite Study AI is currently free to use. You just need your own API key for high usage.</p>
+            </div>
+            <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
+               <h3 className="font-bold text-white mb-2">Can I upload images?</h3>
+               <p className="text-zinc-400 text-sm">Absolutely! You can upload images of handwritten notes or diagrams, and we'll extract the information.</p>
+            </div>
+            <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
+               <h3 className="font-bold text-white mb-2">What is the Audio Lesson?</h3>
+               <p className="text-zinc-400 text-sm">It converts your notes into an engaging podcast-style lesson with quizzes to test your listening.</p>
+            </div>
+          </div>
         </div>
+      </div>
     );
 };
 
@@ -1466,15 +1726,18 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [prompt, setPrompt] = useState('');
+  const [selectedTool, setSelectedTool] = useState<'kit' | 'search' | 'note' | 'audio'>('kit');
+  const [isToolMenuOpen, setIsToolMenuOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(MODELS[1]); // Default to Flash v3
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [autoScan, setAutoScan] = useState(true);
   
   // Feature 4: Protocol Handlers
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const action = params.get('action');
     if (action) {
-        // Handle web+study://action urls
         if (action.startsWith('quiz/')) {
-            // E.g. web+study://quiz/123 -> ?action=quiz/123
             const quizId = action.split('/')[1];
             navigate(`/study/${quizId}`);
         }
@@ -1506,7 +1769,6 @@ const LandingPage = () => {
       const content = [sharedTitle, sharedText, sharedUrl].filter(Boolean).join('\n\n');
       if (content) {
         setPrompt(content);
-        // Clean URL to prevent re-processing on refresh
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
@@ -1516,10 +1778,8 @@ const LandingPage = () => {
   const [contextText, setContextText] = useState<string>('');
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('');
-  const [selectedTool, setSelectedTool] = useState<'kit' | 'search' | 'note'>('kit');
-  const [isToolMenuOpen, setIsToolMenuOpen] = useState(false);
   
-  // Refs for file inputs and backdrop syncing
+  // Refs for file inputs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const contextInputRef = useRef<HTMLInputElement>(null);
@@ -1540,6 +1800,17 @@ const LandingPage = () => {
         navigate('/search', { state: { query: prompt }});
     } else if (selectedTool === 'note') {
         navigate('/notes', { state: { query: prompt }});
+    } else if (selectedTool === 'audio') {
+        navigate('/generating', {
+            state: {
+                content: prompt,
+                title: "New Audio Lesson",
+                context: contextText,
+                images: attachedImages,
+                selectedSubject,
+                type: 'audio-lesson'
+            }
+        });
     } else {
         // Study Kit (Default)
         navigate('/configure', { 
@@ -1591,7 +1862,6 @@ const LandingPage = () => {
       }
   };
   
-  // Function to highlight URLs in the backdrop
   const highlightLinks = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parts = text.split(urlRegex);
@@ -1612,7 +1882,8 @@ const LandingPage = () => {
   const toolLabels = {
       kit: "Study Kit",
       search: "Deep Search",
-      note: "Note Taker v1"
+      note: "Note Taker",
+      audio: "Audio Lesson"
   };
 
   return (
@@ -1627,10 +1898,8 @@ const LandingPage = () => {
       {/* Hero Section */}
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden">
       
-      {/* Background Decor - Top blob only */}
+      {/* Background Decor */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-zinc-900 rounded-full blur-3xl opacity-30 pointer-events-none" />
-      
-      {/* REMOVED: Bottom Gradients */}
 
       <div className="max-w-2xl w-full text-center z-10 space-y-8 relative">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-8">
@@ -1641,19 +1910,17 @@ const LandingPage = () => {
           className={`
             relative bg-zinc-900 rounded-[2rem] border border-zinc-800 shadow-xl transition-all duration-300
             hover:border-zinc-700 hover:shadow-2xl hover:shadow-zinc-900/50
-            flex flex-col min-h-[160px] text-left overflow-hidden
+            flex flex-col min-h-[160px] text-left
           `}
         >
-          {/* Main Input Area with Overlay Highlighting */}
+          {/* Main Input Area */}
           <div className="flex-1 relative">
-            {/* Backdrop for highlighting */}
             <div 
                 ref={backdropRef}
                 className="absolute inset-0 p-6 text-lg text-white whitespace-pre-wrap break-words font-sans bg-transparent pointer-events-none z-0 overflow-hidden"
                 style={{ lineHeight: '1.625' }}
             >
                 {highlightLinks(prompt)}
-                {/* Add a trailing space to fix height issues if prompt ends with newline */}
                 {prompt.endsWith('\n') && <br />}
             </div>
 
@@ -1662,13 +1929,13 @@ const LandingPage = () => {
               onChange={(e) => setPrompt(e.target.value)}
               onScroll={handleScroll}
               placeholder={selectedTool === 'search' ? "What do you want to research?" : "Ask anything or paste a URL..."}
-              className="relative z-10 w-full h-full bg-transparent border-none outline-none text-lg text-transparent caret-white placeholder-zinc-500 resize-none font-sans p-6"
+              className="relative z-10 w-full h-full bg-transparent border-none outline-none text-lg text-transparent caret-white placeholder-zinc-500 resize-none font-sans p-6 pr-32"
               style={{ minHeight: '120px', lineHeight: '1.625' }}
               spellCheck={false}
             />
           </div>
           
-           {/* Context Chips Positioned Above Toolbar */}
+           {/* Context Chips */}
              {(contextText || attachedImages.length > 0 || selectedSubject) && (
                  <div className="px-6 pb-2 flex gap-2 overflow-x-auto no-scrollbar relative z-20">
                      {selectedSubject && (
@@ -1711,19 +1978,25 @@ const LandingPage = () => {
                             onClick={() => { setSelectedTool('kit'); setIsToolMenuOpen(false); }}
                             className="w-full text-left px-4 py-3 hover:bg-zinc-700 flex items-center gap-2 text-sm font-medium text-zinc-200"
                         >
-                            <BookOpen size={16} /> Study Kit
+                            <StudyKitIcon /> Study Kit
+                        </button>
+                        <button 
+                            onClick={() => { setSelectedTool('audio'); setIsToolMenuOpen(false); }}
+                            className="w-full text-left px-4 py-3 hover:bg-zinc-700 flex items-center gap-2 text-sm font-medium text-zinc-200"
+                        >
+                            <AudioLessonIcon /> Audio Lesson
                         </button>
                         <button 
                             onClick={() => { setSelectedTool('search'); setIsToolMenuOpen(false); }}
                             className="w-full text-left px-4 py-3 hover:bg-zinc-700 flex items-center gap-2 text-sm font-medium text-zinc-200"
                         >
-                            <Globe size={16} /> Search
+                            <SearchSparkIcon /> Search
                         </button>
                         <button 
                             onClick={() => { setSelectedTool('note'); setIsToolMenuOpen(false); }}
                             className="w-full text-left px-4 py-3 hover:bg-zinc-700 flex items-center gap-2 text-sm font-medium text-zinc-200"
                         >
-                            <Notebook size={16} /> Note Taker v1
+                            <NoteTakerIcon /> Note Taker
                         </button>
                     </div>
                 )}
@@ -1769,12 +2042,67 @@ const LandingPage = () => {
             </div>
             
              {/* Right Tools */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+               
+               {/* Model Selector */}
+               <div className="relative">
+                    <button 
+                        onClick={() => setModelMenuOpen(!modelMenuOpen)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all group"
+                    >
+                        <div className="w-4 h-4 rounded-full overflow-hidden opacity-70 group-hover:opacity-100">
+                           <GeminiIcon />
+                        </div>
+                        <span>{selectedModel.name}</span>
+                        <ChevronDown size={12} className={`text-zinc-500 transition-transform ${modelMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {modelMenuOpen && (
+                        <div className="absolute bottom-full right-0 mb-2 w-56 bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-visible p-1 flex flex-col gap-1 z-50">
+                            
+                            {/* Auto Scan Toggle Header */}
+                            <div 
+                                onClick={() => setAutoScan(!autoScan)}
+                                className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-zinc-800 rounded-xl mb-1 border-b border-zinc-800"
+                            >
+                                <div className="flex items-center gap-2 text-xs font-bold text-zinc-400">
+                                    <AutoSelectIcon /> Auto-select
+                                </div>
+                                <div className={`w-8 h-4 rounded-full relative transition-colors ${autoScan ? 'bg-blue-600' : 'bg-zinc-700'}`}>
+                                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${autoScan ? 'left-4.5' : 'left-0.5'}`} style={{ left: autoScan ? '18px' : '2px' }} />
+                                </div>
+                            </div>
+
+                            {MODELS.map(model => (
+                                <div key={model.id} className="relative group">
+                                    <button
+                                        onClick={() => { setSelectedModel(model); setModelMenuOpen(false); }}
+                                        className={`
+                                            w-full text-left px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-all
+                                            ${selectedModel.id === model.id ? 'bg-white text-black' : 'text-zinc-300 hover:bg-zinc-800'}
+                                        `}
+                                    >
+                                        <div className="w-4 h-4 rounded-full overflow-hidden shrink-0">
+                                            <GeminiIcon />
+                                        </div>
+                                        {model.name}
+                                        {selectedModel.id === model.id && <Check size={12} className="ml-auto" />}
+                                    </button>
+                                    {/* Info Card on Hover */}
+                                    <div className="absolute right-full bottom-0 mr-2 w-64 bg-zinc-900 border border-zinc-700 rounded-2xl p-4 shadow-xl z-[60] text-left animate-fade-in hidden group-hover:block pointer-events-none">
+                                        <ModelInfoCard model={model} className="relative" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                <button 
                  onClick={handleVoiceInput}
                  className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
                >
-                  <Mic size={22} strokeWidth={1.5} />
+                  <Mic size={20} strokeWidth={2} />
                </button>
 
                 <button
@@ -1862,6 +2190,7 @@ const App = () => {
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/library" element={<Library />} />
                     <Route path="/study/:id" element={<StudyDetail />} />
+                    <Route path="/audio-lesson/:id" element={<AudioLessonPage />} />
                     <Route path="/configure" element={<ConfigurePage />} />
                     <Route path="/generating" element={<LoadingScreen />} />
                     <Route path="/chat" element={<ChatPage />} />
