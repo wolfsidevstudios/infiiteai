@@ -71,7 +71,8 @@ import {
   MessageSquare,
   ChevronLeft,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Copy
 } from 'lucide-react';
 
 import { StudyMaterial, Flashcard, QuizQuestion, StudyPlan, ConceptMapNode, Task, StudyLocation, SearchResult } from './types';
@@ -97,7 +98,8 @@ import {
   saveKeyTerms,
   getKeyTerms,
   getAppSettings,
-  saveAppSettings
+  saveAppSettings,
+  syncWidgetData
 } from './services/storageService';
 import { generateSummary, generateFlashcards, generateQuiz, generateShortOverview, generateConceptMap, generateLocationData, performWebSearch, generateStructuredNotes, generateKeyTerms, setApiKey, getApiKey } from './services/geminiService';
 import FlashcardDeck from './components/FlashcardDeck';
@@ -178,6 +180,75 @@ const SnowOverlay = () => {
             `}</style>
         </div>
     );
+};
+
+// --- Product Hunt Popup Component ---
+const ProductHuntPopup = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    const utmSource = params.get('utm_source');
+    
+    // Check if user came from Product Hunt via URL params or Referrer
+    if (ref === 'producthunt' || utmSource === 'producthunt' || document.referrer.includes('producthunt.com')) {
+      setIsOpen(true);
+    }
+  }, []);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText("https://infinite-study.vercel.app/");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+        <div className="bg-zinc-900 rounded-3xl p-8 w-full max-w-md shadow-2xl relative border border-zinc-800 text-center">
+            <button 
+                onClick={() => setIsOpen(false)}
+                className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+            >
+                <X size={24} />
+            </button>
+            
+            <div className="w-16 h-16 bg-[#FF6154]/20 text-[#FF6154] rounded-full flex items-center justify-center mx-auto mb-6">
+                <Sparkles size={32} />
+            </div>
+
+            <h2 className="text-2xl font-bold text-white mb-2">Welcome, Product Hunters! 😻</h2>
+            <p className="text-zinc-400 mb-6 leading-relaxed">
+                Thank you for discovering us! We're thrilled to have you here.
+            </p>
+
+            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 mb-6 flex items-center justify-between gap-3">
+                <span className="text-zinc-400 text-sm truncate select-all">https://infinite-study.vercel.app/</span>
+                <button 
+                    onClick={handleCopy}
+                    className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white transition-colors"
+                    title="Copy URL"
+                >
+                    {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                </button>
+            </div>
+
+            <button 
+                onClick={() => setIsOpen(false)}
+                className="w-full py-3 bg-white text-black rounded-xl font-bold hover:scale-[1.02] transition-transform mb-4"
+            >
+                Start Exploring
+            </button>
+            
+            <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide">
+                Keep sharing & supporting! 🚀
+            </p>
+        </div>
+    </div>
+  );
 };
 
 // --- Map Slide Component ---
@@ -1568,6 +1639,8 @@ const App = () => {
   useEffect(() => {
     const settings = getAppSettings();
     setShowSnow(settings.showSnow);
+    // Sync widget data on mount
+    syncWidgetData();
   }, []);
 
   const handleToggleSnow = (enabled: boolean) => {
@@ -1578,6 +1651,7 @@ const App = () => {
   return (
     <Router>
       <div className="min-h-screen bg-black text-white font-sans selection:bg-white/20">
+        <ProductHuntPopup />
         {showSnow && <SnowOverlay />}
         
         <Routes>
