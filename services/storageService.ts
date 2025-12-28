@@ -15,6 +15,17 @@ const KEYS = {
   SETTINGS: 'sb_settings' // New key
 };
 
+// --- Helper to sync data to Service Worker for PWA Widgets ---
+export const syncWidgetData = () => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const stats = getStats();
+        navigator.serviceWorker.controller.postMessage({
+            type: 'WIDGET_UPDATE',
+            payload: { streak: stats.streakDays }
+        });
+    }
+};
+
 export const saveMaterial = (material: StudyMaterial) => {
   const materials = getMaterials();
   materials.push(material);
@@ -202,6 +213,7 @@ export const updateStats = (type: 'quiz' | 'card' | 'login', value?: number) => 
   }
 
   localStorage.setItem(KEYS.STATS, JSON.stringify(stats));
+  syncWidgetData(); // Update widget whenever stats change
   return stats;
 };
 
