@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { Flashcard, QuizQuestion, ConceptMapNode, StudyLocation, SearchResult } from '../types';
+import { getMaterials, getStats, getTasks } from './storageService';
 
 let apiKey = process.env.API_KEY || localStorage.getItem('user_gemini_api_key') || '';
 // Initialize with available key, handled gracefully if empty until set
@@ -50,17 +51,38 @@ const buildContents = (promptText: string, mainContent: string, context?: string
 };
 
 export const createStudyChatSession = (): Chat => {
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const stats = getStats();
+    const materials = getMaterials();
+    const tasks = getTasks();
+
+    // Summarize context to keep token usage efficient
+    const materialsList = materials.slice(0, 5).map(m => `"${m.title}"`).join(", ") || "None";
+    const pendingTasks = tasks.filter(t => !t.completed).map(t => `"${t.title}" (Due: ${t.date})`).join(", ") || "None";
+
+    const userContext = `
+    CURRENT USER CONTEXT:
+    - Current Date: ${dateStr}
+    - User Statistics: Streak: ${stats.streakDays} days, Cards Learned: ${stats.totalCardsLearned}, Quizzes Taken: ${stats.totalQuizzesTaken}, Avg Score: ${Math.round(stats.averageQuizScore)}%.
+    - Recent Study Sets: ${materialsList}
+    - Pending Tasks: ${pendingTasks}
+    `;
+
     return ai.chats.create({
         model: 'gemini-3-flash-preview',
         config: {
             systemInstruction: `You are an intelligent, patient, and encouraging study tutor. 
             Your primary goal is to help students learn and understand concepts deeply.
             
+            ${userContext}
+            
             STRICT RULES:
             1. NEVER provide the final answer or full solution directly.
             2. Guide the student step-by-step. Break complex problems into smaller, manageable parts.
             3. Ask leading questions.
             4. If the student makes a mistake, gently correct them.
+            5. Use the provided User Context to personalize your responses (e.g., mention their streak, ask about specific tasks, or reference their study sets).
             
             GENERATIVE UI, GRAPHING, SIMULATION & VIDEO RULES:
             You must output your response in raw HTML fragments.
